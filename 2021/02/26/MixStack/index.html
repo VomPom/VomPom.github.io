@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="utf-8">
+<title>{已开源} 阅文 Flutter 混合开发利器 MixStack - 落叶挽歌</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+
+    <meta name="description" content="原文发表于 阅文技术公众号 《{已开源} 阅文 Flutter 混合开发利器 MixStack》 Github开源地址：MixStack MixStack混合栈是我当时刚进入公司不久参与的该项目，对于混合栈的开发说起来很简单，但踩了无数的坑，经常被各种神奇的bug和场景折腾得睡不好觉。还好，最终都挺过来了，项目从启动到开源最后再到文章，不知道被老大哥喷了多少遍，可以说这是我工作生涯中，灰暗而又有收">
+<meta name="keywords" content="Flutter">
+<meta property="og:type" content="article">
+<meta property="og:title" content="{已开源} 阅文 Flutter 混合开发利器 MixStack">
+<meta property="og:url" content="http://vompom.github.com/2021/02/26/MixStack/index.html">
+<meta property="og:site_name" content="落叶挽歌">
+<meta property="og:description" content="原文发表于 阅文技术公众号 《{已开源} 阅文 Flutter 混合开发利器 MixStack》 Github开源地址：MixStack MixStack混合栈是我当时刚进入公司不久参与的该项目，对于混合栈的开发说起来很简单，但踩了无数的坑，经常被各种神奇的bug和场景折腾得睡不好觉。还好，最终都挺过来了，项目从启动到开源最后再到文章，不知道被老大哥喷了多少遍，可以说这是我工作生涯中，灰暗而又有收">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://meterpreter.org/wp-content/uploads/2018/09/flutter.png">
+<meta property="og:updated_time" content="2021-05-14T06:57:37.038Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{已开源} 阅文 Flutter 混合开发利器 MixStack">
+<meta name="twitter:description" content="原文发表于 阅文技术公众号 《{已开源} 阅文 Flutter 混合开发利器 MixStack》 Github开源地址：MixStack MixStack混合栈是我当时刚进入公司不久参与的该项目，对于混合栈的开发说起来很简单，但踩了无数的坑，经常被各种神奇的bug和场景折腾得睡不好觉。还好，最终都挺过来了，项目从启动到开源最后再到文章，不知道被老大哥喷了多少遍，可以说这是我工作生涯中，灰暗而又有收">
+<meta name="twitter:image" content="https://meterpreter.org/wp-content/uploads/2018/09/flutter.png">
+
+
+
+
+
+
+<link rel="icon" href="/images/logo.png">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.7.2/css/bulma.css">
+<link rel="stylesheet" href="https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,600|Source+Code+Pro">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.12.0/styles/atom-one-light.css">
+
+
+    
+    
+    
+    <style>body>.footer,body>.navbar,body>.section{opacity:0}</style>
+    
+
+    
+    
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/css/lightgallery.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/css/justifiedGallery.min.css">
+    
+
+    
+    
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.css">
+
+
+    
+    
+    
+    
+
+<link rel="stylesheet" href="/css/back-to-top.css">
+
+
+    
+    
+
+    
+    
+<script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?a642bfb7c75afbc4fe68fd942180298b";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+    
+    
+
+    
+    
+<link rel="stylesheet" href="/css/progressbar.css">
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+    
+    
+    
+
+    
+    
+    
+        <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    
+
+    
+
+
+<link rel="stylesheet" href="/css/style.css">
+<link rel="alternate" href="/atom.xml" title="落叶挽歌" type="application/atom+xml">
+</head>
+<body class="is-3-column">
+    <nav class="navbar navbar-main">
+    <div class="container">
+        <div class="navbar-brand is-flex-center">
+            <a class="navbar-item navbar-logo" href="/">
+            
+                <img src="/images/logo.png" alt="{已开源} 阅文 Flutter 混合开发利器 MixStack" height="28">
+            
+            </a>
+        </div>
+        <div class="navbar-menu">
+            
+            <div class="navbar-start">
+                
+                <a class="navbar-item" href="/">首页</a>
+                
+                <a class="navbar-item" href="/archives">归档</a>
+                
+                <a class="navbar-item" href="/categories">分类</a>
+                
+                <a class="navbar-item" href="/tags">标签</a>
+                
+                <a class="navbar-item" href="/about">关于我</a>
+                
+                <a class="navbar-item" href="/message">留言</a>
+                
+            </div>
+            
+            <div class="navbar-end">
+                
+                    
+                    
+                    <a class="navbar-item" target="_blank" title="Download on GitHub" href="https://github.com/vompom">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                    
+                
+                
+                
+                <a class="navbar-item search" title="搜索" href="javascript:;">
+                    <i class="fas fa-search"></i>
+                </a>
+                
+            </div>
+        </div>
+    </div>
+</nav>
+    
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-8-tablet is-8-desktop is-6-widescreen has-order-2 column-main"><div class="card">
+    
+    <div class="card-image">
+        <span class="image is-7by1">
+            <img class="thumbnail" src="https://meterpreter.org/wp-content/uploads/2018/09/flutter.png" alt="{已开源} 阅文 Flutter 混合开发利器 MixStack">
+        </span>
+    </div>
+    
+    <div class="card-content article ">
+        
+        <div class="level article-meta is-size-7 is-uppercase is-mobile is-overflow-x-auto">
+            <div class="level-left">
+                <time class="level-item has-text-grey" datetime="2021-02-26T12:56:00.000Z">2021年02月26日</time>
+                
+                <div class="level-item">
+                <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                </div>
+                
+                
+                <span class="level-item has-text-grey">
+                    
+                    
+                    21 分钟 读完 (大约 3135 个字)
+                </span>
+                
+                
+                <span class="level-item has-text-grey" id="busuanzi_container_page_pv">
+                    <i class="far fa-eye"></i>
+                    <span id="busuanzi_value_page_pv">0</span>次访问
+                </span>
+                
+            </div>
+        </div>
+        
+        <h1 class="title is-size-3 is-size-4-mobile has-text-weight-normal">
+            
+                {已开源} 阅文 Flutter 混合开发利器 MixStack
+            
+        </h1>
+        <div class="content">
+            <p>原文发表于 阅文技术公众号 <a href="https://mp.weixin.qq.com/s?__biz=MzIxMzgxMjQ1Mw==&amp;mid=2247483918&amp;idx=1&amp;sn=1a09f803ed543b11a3d4255fb28ee854&amp;chksm=97b05784a0c7de9265fd6c5690e46f5f8cd68ffd1f9d85c0263c3b28d06936f08fc6034ab3c8&amp;mpshare=1&amp;scene=1&amp;srcid=0310R2s6SjdCsrAvUwXNBoo3&amp;sharer_sharetime=1615366421433&amp;sharer_shareid=f9805455f7ec45f0ab87cd8190bfce47&amp;version=3.1.1.6192&amp;platform=mac#rd" target="_blank" rel="noopener">《{已开源} 阅文 Flutter 混合开发利器 MixStack》</a></p>
+<p>Github开源地址：<a href="https://github.com/yuewen/mix_stack" target="_blank" rel="noopener">MixStack</a></p>
+<p>MixStack混合栈是我当时刚进入公司不久参与的该项目，对于混合栈的开发说起来很简单，但踩了无数的坑，经常被各种神奇的bug和场景折腾得睡不好觉。还好，最终都挺过来了，项目从启动到开源最后再到文章，不知道被老大哥喷了多少遍，可以说这是我工作生涯中，灰暗而又有收获，非常有意义的一段时间，遂记录该文章于博客。</p>
+<h2 id="一、前言"><a href="#一、前言" class="headerlink" title="一、前言"></a><strong>一、前言</strong></h2><p>Flutter 是一款谷歌的移动 UI 框架，可以快速在 iOS 和 Android 上构建高质量的原生用户界面。Flutter 可以与现有的代码一起工作，相比于其他跨平台的框架，如 React Native、Weex 等，Flutter 具有如下的优势：跨平台表现一致 谷歌直接在 iOS/Android 等平台直接建立了独立的渲染引擎，保证了界面渲染的高效且多端有接近原生性能的表现。快速开发 开发过程中提供了高效的热重载，开发便捷。已有工具链已经比较强大。</p>
+<h2 id="二、随之而来的问题"><a href="#二、随之而来的问题" class="headerlink" title="二、随之而来的问题"></a><strong>二、随之而来的问题</strong></h2><p>当我们尝试将 Flutter 集成到项目中的时候，却发现现实比想象骨感许多，这里我们以 Android 平台的探索为例进行说明。</p>
+<p>对于 Android 平台，官方封装了 FlutterAcitivity 以及 FlutterFragment 两种 Flutter 原生容器，当我们直接使用时，能正常打开 Flutter 页面，但是表现却并不如我们所期待。</p>
+<p>其中最明显的就是，官方会为每个  FlutterAcitivity 和 FlutterFragment 生成一个新的 FlutterEngine 实例。每个 FlutterEngine 拥有不同的 Isolate，也就是说不同的 Dart 运行环境完全独立，其内存状态不进行共享。对于大多数 App 来说，多数页面有一些全局状态（例如登录态）。如果基于 Flutter 默认的设计，两个不同容器里的 Flutter 页面通信将变得异常复杂。另外每个 FlutterEngine 实例的内存开销本身就非常大，例如同一张图片由于内存状态不共享，在 n 个 Engine 中会存在 n 份，这显然是不可接受的。</p>
+<p>这就是当我们想把 Flutter 与现有业务代码混合使用时会遇到的 </p>
+<p><strong>问题1：多 FlutterEngine 实例间内存状态不共享</strong></p>
+<p>对于多 FlutterEngine 实例带来的问题远不止这些，官方提供给了我们一种解决方案：共享 FlutterEngine，全局只有一个 FlutterEngine 实例，将其放入缓存管理中。当我们尝试使用这种方案连续打开两个 FlutterActivity，页面却会冻住，停止渲染.</p>
+<p><strong>问题2：Flutter 原生容器在共享 FlutterEngine 情况下渲染生命周期错误</strong></p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_gif/uZyfcSvc6dDWlHKEDdDRlXUp6dKDoS4Nsia7GO9D4jEWIQ4UrxEN3AknQtPePAEEjB9D72iaiaC91Mibeib28aJSNxg/640?wx_fmt=gif&amp;tp=webp&amp;wxfrom=5&amp;wx_lazy=1" alt="图片"></p>
+<p>另外，在业务场景中，常有类似这样的页面跳转情况：Native Activity-&gt;Flutter Activity-&gt;Native Activity-&gt;Flutter Activity-&gt;Native Activity ，其中 Flutter Activity 中拥有几个不同的 Flutter Page，如下图所示：</p>
+<p><img src="https://oscimg.oschina.net/oscnet/up-d9cffa0f953425a54c3c7e27a61b543e4c4.png" alt>对于 FlutteActivity 或者 FlutterFragment 中的 Flutter 页面来说我们需要将其与原生页面对齐，页面栈变成下图会更容理解：</p>
+<p><img src="https://oscimg.oschina.net/oscnet/up-a89a79a943946376e40b2c8905631f55cae.png" alt></p>
+<p>当我们处于 FlutterActivity A 中页面时，对于一些业务场景有顶部 NavigationBar、Back 按键以及手势返回的时候，用户基于常见的栈“先进后出”的原则，对于 FlutterActivity A 中的页面，期望的是先关闭掉其最上层的 Flutter 页面，再依次关闭f3、f2、f1。最终关闭掉该 FlutterActivity 展示 Natvie Activity A。然而实际的情况是：如果不修改相关逻辑，会直接 finish 掉整个 Activity，那么f1、f2、f3……会被同时关闭。</p>
+<p><strong>问题3：Flutter 原生容器中 Flutter 页面栈管理与预期不符</strong></p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_gif/uZyfcSvc6dDWlHKEDdDRlXUp6dKDoS4Nfpjkjib5o50a83cSUkvFIDkI7qVbkkvez3l7BEr01tQnUNI6bV00e9g/640?wx_fmt=gif&amp;tp=webp&amp;wxfrom=5&amp;wx_lazy=1" alt="图片"></p>
+<p>在每个 FlutterActivity 中存在一个 FlutterView，FlutterView 承载了不同的 Flutter 页面也就是不同的 FlutterWidget，其Flutter 内部不同的 Widget 可以通过Navigator控制，我们需要将其做到与原生对齐，形成一套用户无感，开发者较浅感知的页面栈管理方案。</p>
+<p>随着深入了解会发现更多的问题，页面切换闪屏、App 启动白屏、Flutter Dialog 展示底部白屏、状态栏高度颜色不正确等等等等。</p>
+<h2 id="三、解决方案"><a href="#三、解决方案" class="headerlink" title="三、解决方案"></a><strong>三、解决方案</strong></h2><p>业内 Flutter 混合栈的研究已经开始很久了，但仍没有一款真正的完美解决方案，我们希望这次推出的 MixStack 是这样的方案。经过一系列的探索，我们解决了上述问题，并在实际上线的 App 红袖中进行了验证，取得了较好的效果。</p>
+<p>接下来具体讲解MixStack的实现</p>
+<p><strong>1.共享FlutterEngine</strong></p>
+<p>为了解决问题1：多 FlutterEngine 实例间内存状态不共享，我们选择对 FlutterEngine 进行共享，保持全局只有一个 FlutterEngine。</p>
+<p>这样使得所有相关操作都在同一个Isolate，对于之前所说的全局状态（例如登录态）以及类似同一份图片缓存存在多份的问题也就迎刃而解了。</p>
+<p><strong>2.正确的渲染生命周期</strong></p>
+<p>关于问题2：Flutter 原生容器在共享    FlutterEngine 情况下渲染生命周期错误。默认的 FlutterActivity 和 FlutterFragment 对于共享 FlutterEngine 的支持不太好，我们对其进行了相关修改。基于任何时候只能看到一个  Flutter 原生容器的假设，且 FlutterEngine 同一时刻也只能渲染一个 FlutterView，因此我们约定：对每一个 FlutterView 在可见的时候对其进行渲染相关的准备，在即将不可见的时候使其从渲染上脱离。那该如何实现 Flutter 原生容器顺畅交互呢？我们先看两个容器间切换的生命周期，通常情况下 Activity A 启动   Activity B 生命周期如下图所示：</p>
+<ul>
+<li><p><img src="https://oscimg.oschina.net/oscnet/up-2347df7b78fcbf33c262fa93247c802ea3c.png" alt>FlutterEngine 在原生层面定义了LifecycleChannel，主要作用是向 Flutter 发送渲染生命周期相关的事件。LifecycleChannel主要发送了四种状态事件：</p>
+</li>
+<li><ol>
+<li>AppLifecycleState.resumed、</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>AppLifecycleState.inactive、</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>AppLifecycleState.paused、</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>AppLifecycleState.detached。</li>
+</ol>
+</li>
+<li><p>阅读源码后可知，FlutterEngine 在   AppLifecycleState.resumed 执行了启动渲染的操作。</p>
+</li>
+<li><p>而 AppLifecycleState.paused、    AppLifecycleState.detached停止了渲染操作，也就是说处于这两个生命周期中，页面内的内容不会被重绘。</p>
+</li>
+<li><p>那么我们可知要使 FlutterEngine 渲染交互正常需要满足以下要求：</p>
+</li>
+<li><p><strong>(1) FlutterEngine 生命周期处于  AppLifecycleState.resumed</strong></p>
+</li>
+<li><p><strong>(2) FlutterEngine attach 在当前可见的  FlutterView</strong></p>
+</li>
+<li><p>那么对于 FlutterActivity，只需在   FlutterActivity onResume() 的时候执行以上操作，使得 FlutterEngine 能够渲染当前页面。当 FlutterActivity 需要启动另一个    FlutterActivity 时，FlutterEngine 需要将其从当前 FlutterView detach 并停止渲染。整个流程如下图所示：</p>
+</li>
+<li><p><img src="https://oscimg.oschina.net/oscnet/up-0a28bd5cc8b4b01c57e9388bccca6212306.png" alt></p>
+</li>
+<li><p>同理，FlutterActivity 打开原生的 Activity 的时候，我们依然需要在 onPause() 的时候，对 FlutterView 进行 detach 操作，保证在新打开原生 Activity 之后，如有再打开的其他的  FlutterActivity 也能够维护正常生命周期。</p>
+</li>
+<li><p>在多数 App 中都有 Tab 类的界面，一般都是：NavigationBar 加 Fragment 的组合，那当这种场景中混合了多个 FlutterFragment，我们又该如何做呢，Fragment组合如下图所示：</p>
+</li>
+<li><p><img src="https://oscimg.oschina.net/oscnet/up-8ee758f66c0a7e6944d250ecf29703e44bf.png" alt></p>
+</li>
+<li><p>我们同样基于之前的假设，在    FlutterFragment onResume() 的时候，attach 到FlutterEngine，使得 FlutterEngine 能够渲染当前页面，onPause 的时候 detach。</p>
+</li>
+<li><p>对于多个 Tab 之间 FlutterFragment 的切换，只多了一步操作，在 onHiddenChanged() 的时候，对 FlutterEngine 进行相应的操作，需要留意的是，在 onPause() 或者  onResume() 操作的时候需要添加  isHidden() 判断，保证当前渲染的是可见的那个 FlutterFragment。</p>
+</li>
+<li><p>FlutterFragment 的渲染流程如下图所示：</p>
+</li>
+<li><p><img src="https://oscimg.oschina.net/oscnet/up-4e211bbd06e222dc3e8849e884973905292.png" alt></p>
+</li>
+<li></li>
+<li><p>至此我们成功地解决了问题2：原生 Flutter 容器在共享 FlutterEngine 情况下渲染生命周期错误</p>
+</li>
+<li><p><strong>(3) Flutter 页面相关的约定</strong></p>
+</li>
+<li><p>前面两点的实现，使我们能够成功让 Flutter 原生容器如正常原生页面一般使用，但依然有问题3：原生 Flutter 容器中 Flutter 页面栈管理与预期不符 未解决。为了解决问题3, 我们需要额外增加一些约定，将每一个原生栈中的 Flutter 原生容器映射为 Flutter 中的一个容器，我们称为 PageContainer。</p>
+</li>
+<li><p>如下图所示：</p>
+</li>
+<li><p><img src="../../../../Library/Application Support/typora-user-images/image-20210310195300378.png" alt="image-20210310195300378"></p>
+</li>
+</ul>
+<p>每个 PageContainer 有以下特性：</p>
+<p>1、包含独立 Navigator，PageContainer 间互不影响</p>
+<p>2、有一个根页面，通过根路径（rootRoute）形式传入</p>
+<p>在每个 Flutter 原生容器实现接口传入 rootRoute 属性，在页面可见的时候，MixStack 会向 Flutter 通信，告知即将显示的页面。</p>
+<p>3、默认对于原生环境的 Inset 无感，通过额外 API 传入（降低性能开销）</p>
+<p>Flutter 对于渲染画布的尺寸变化非常敏感，某些情况下会导致 Widget 状态异常，例如 Tab 滑动位置丢失等等问题，所以 MixStack 默认为 Flutter View 尺寸不变化，推荐将影响 View 内 Flutter 组件排版的 inset 变化通过 API 传入。</p>
+<p>MixStack 基于 Channel 通信告知 Flutter 当前所有页面信息 (pages) 及当前需要显示 Flutter 页面 (currentPage)，Flutter 基于信息更新 Widget。每个 PageContainer 与 Flutter 原生容器的 hashCode 有唯一映射关系，从而保证页面状态持久化。</p>
+<p>另外我们在 iOS 和 Android 上接管了返回指令，并与 Flutter 端进行同步，满足返回预期。</p>
+<p>最后的效果就如我们所期望的：</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_gif/uZyfcSvc6dDWlHKEDdDRlXUp6dKDoS4NRN5typNux5sz2rvzz0fXe9JicVfTAf4Y3SXn6sWibVFfv5aVoU1FeeqQ/640?wx_fmt=gif&amp;tp=webp&amp;wxfrom=5&amp;wx_lazy=1" alt="图片"></p>
+<h2 id="四、总结"><a href="#四、总结" class="headerlink" title="四、总结"></a><strong>四、总结</strong></h2><p>至此我们解决了上述三大问题，构建出了一套能够正确维护原生⻚面与 Flutter ⻚面交互的完整解决方案。</p>
+<p>当然关于项目中集成使用 Flutter 所带来的麻烦并不局限于上述问题，Flutter 本身也存在一些 Bug，MixStack 已经将相关的问题在库内解决或者提交官方补丁。经过线上 App 的实际验证，对首⻚多FlutterFragment 、 Flutter 各种弹窗 、各种 Flutter 容器与原生之间的切换等情况均表现正常。</p>
+<p>目前 MixStack 已经全量在阅文旗下红袖 App 上使用，他们在极短时间内借助 MixStack 能力平滑移除了对 RN 的依赖，同时仍正常交付日常功能需求。</p>
+<p>一款成熟的 App 将现有的⻚面完全转化为 Flutter ⻚面，改造的成本太大，周期太⻓，或者有一些业务场景⻚面需要 Native 的能力，需要一个能方便管理原生与 Flutter 混合⻚面的管理工具，那么 MixStack 将是一个非常好的选择。</p>
+
+        </div>
+        
+        <div class="level is-size-7 is-uppercase">
+            <div class="level-start">
+                <div class="level-item">
+                    <span class="is-size-6 has-text-grey has-mr-7">#</span>
+                    <a class="has-link-grey -link" href="/tags/Flutter/">Flutter</a>
+                </div>
+            </div>
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="menu-label has-text-centered">喜欢这篇文章？打赏一下作者吧</h3>
+        <div class="buttons is-centered">
+            
+                
+<a class="button is-info donate">
+    <span class="icon is-small">
+        <i class="fab fa-alipay"></i>
+    </span>
+    <span>支付宝</span>
+    <div class="qrcode"><img src="/images/ali_pay.png" alt="支付宝"></div>
+</a>
+
+                
+                
+<a class="button is-success donate">
+    <span class="icon is-small">
+        <i class="fab fa-weixin"></i>
+    </span>
+    <span>微信</span>
+    <div class="qrcode"><img src="/images/wechat_pay.png" alt="微信"></div>
+</a>
+
+                
+        </div>
+    </div>
+</div>
+
+
+
+<div class="card card-transparent">
+    <div class="level post-navigation is-flex-wrap is-mobile">
+        
+        <div class="level-start">
+            <a class="level level-item has-link-grey  article-nav-prev" href="/2021/03/10/JNI内存管理及优化/">
+                <i class="level-item fas fa-chevron-left"></i>
+                <span class="level-item">（转）JNI内存管理及优化</span>
+            </a>
+        </div>
+        
+        
+        <div class="level-end">
+            <a class="level level-item has-link-grey  article-nav-next" href="/2020/10/31/Flutter坑之FlutterFragment中SafeArea失效的问题/">
+                <span class="level-item">Flutter坑之FlutterFragment中SafeArea失效的问题</span>
+                <i class="level-item fas fa-chevron-right"></i>
+            </a>
+        </div>
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="title is-5 has-text-weight-normal">评论</h3>
+        
+<div id="valine-thread" class="content"></div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+<script>
+    new Valine({
+        el: '#valine-thread' ,
+        notify: false,
+        verify: false,
+        app_id: 'BjuTFnRGIQTXfmCVSK8CE1a0-gzGzoHsz',
+        app_key: 'QTcBYS28pXM8mNIcLEo5aP7R',
+        placeholder: '喜欢么？有什么对我说的么？(上面的信息可以不用填，如果你想告诉我你是谁也没有关系)'
+    });
+</script>
+
+    </div>
+</div>
+</div>
+                
+
+
+
+
+<div class="column is-4-tablet is-4-desktop is-3-widescreen  has-order-1 column-left is-sticky">
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <nav class="level">
+            <div class="level-item has-text-centered">
+                <div>
+                    
+                        <figure class="image is-128x128 has-mb-6">
+                            <img class="is-rounded" src="/images/logo.png" alt="落叶挽歌">
+                        </figure>
+                    
+                    
+                    <p class="is-size-4 is-block">
+                        落叶挽歌
+                    </p>
+                    
+                    
+                    <p class="is-size-6 is-block">
+                        VomPom的博客
+                    </p>
+                    
+                    
+                    <p class="is-size-6 is-flex is-flex-center has-text-grey">
+                        <i class="fas fa-map-marker-alt has-mr-7"></i>
+                        <span>上海·浦东</span>
+                    </p>
+                    
+                </div>
+            </div>
+        </nav>
+        <nav class="level is-mobile">
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        文章
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        49
+                    </p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        分类
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        5
+                    </p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        标签
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        25
+                    </p>
+                </div>
+            </div>
+        </nav>
+        <div class="level">
+            <a class="level-item button is-link is-rounded" href="https://www.zhihu.com/people/luoyewange" target="_blank">
+                关注我</a>
+        </div>
+        
+        
+        <div class="level is-mobile">
+            
+            <a class="level-item button is-white is-marginless" target="_blank" title="知乎" href="https://www.zhihu.com/people/luoyewange">
+                
+                <i class="fab fa-zhihu"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank" title="QQ" href="http://wpa.qq.com/msgrd?v=3&amp;uin=617669559&amp;site=qq&amp;menu=yes">
+                
+                <i class="fab fa-qq"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank" title="Weixin" href="https://github.com/VomPom/VomPom.github.io/blob/master/pulicdata/julis_wechat.png?raw=true">
+                
+                <i class="fab fa-weixin"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank" title="Douban" href="https://www.douban.com/people/vompom/">
+                
+                <i class="fa fa-book"></i>
+                
+            </a>
+            
+        </div>
+        
+    </div>
+</div>
+    
+        
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                分类
+            </h3>
+            <ul class="menu-list">
+            <li>
+        <a class="level is-marginless" href="/categories/thinking/">
+            <span class="level-start">
+                <span class="level-item">思考总结</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">2</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/categories/technology/">
+            <span class="level-start">
+                <span class="level-item">技术文章</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">27</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/categories/life/">
+            <span class="level-start">
+                <span class="level-item">生活感想</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">10</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/categories/算法研究/">
+            <span class="level-start">
+                <span class="level-item">算法研究</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">3</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/categories/movie/">
+            <span class="level-start">
+                <span class="level-item">读书电影</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">6</span>
+            </span>
+        </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+    
+        <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+        <h3 class="menu-label">
+            归档
+        </h3>
+        <ul class="menu-list">
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2021/05/">
+                <span class="level-start">
+                    <span class="level-item">五月 2021</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2021/04/">
+                <span class="level-start">
+                    <span class="level-item">四月 2021</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2021/03/">
+                <span class="level-start">
+                    <span class="level-item">三月 2021</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2021/02/">
+                <span class="level-start">
+                    <span class="level-item">二月 2021</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2020/10/">
+                <span class="level-start">
+                    <span class="level-item">十月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2020/09/">
+                <span class="level-start">
+                    <span class="level-item">九月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">3</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2020/08/">
+                <span class="level-start">
+                    <span class="level-item">八月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2020/07/">
+                <span class="level-start">
+                    <span class="level-item">七月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2020/06/">
+                <span class="level-start">
+                    <span class="level-item">六月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">5</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2020/04/">
+                <span class="level-start">
+                    <span class="level-item">四月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2020/03/">
+                <span class="level-start">
+                    <span class="level-item">三月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">5</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2019/12/">
+                <span class="level-start">
+                    <span class="level-item">十二月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2019/11/">
+                <span class="level-start">
+                    <span class="level-item">十一月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2019/10/">
+                <span class="level-start">
+                    <span class="level-item">十月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">3</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2019/09/">
+                <span class="level-start">
+                    <span class="level-item">九月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2019/08/">
+                <span class="level-start">
+                    <span class="level-item">八月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2019/07/">
+                <span class="level-start">
+                    <span class="level-item">七月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">3</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2019/06/">
+                <span class="level-start">
+                    <span class="level-item">六月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2019/05/">
+                <span class="level-start">
+                    <span class="level-item">五月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">3</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2019/04/">
+                <span class="level-start">
+                    <span class="level-item">四月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2019/03/">
+                <span class="level-start">
+                    <span class="level-item">三月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">3</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2018/08/">
+                <span class="level-start">
+                    <span class="level-item">八月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2018/05/">
+                <span class="level-start">
+                    <span class="level-item">五月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2017/07/">
+                <span class="level-start">
+                    <span class="level-item">七月 2017</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2017/05/">
+                <span class="level-start">
+                    <span class="level-item">五月 2017</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2015/07/">
+                <span class="level-start">
+                    <span class="level-item">七月 2015</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        </ul>
+        </div>
+    </div>
+</div>
+    
+    
+        <div class="column-right-shadow is-hidden-widescreen is-sticky">
+        
+            
+<div class="card widget">
+    <div class="card-content">
+        <h3 class="menu-label">
+            最新文章
+        </h3>
+        
+        <article class="media">
+            
+            <a href="/2021/05/14/Android-逆向-反编译/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="https://cdn.pixabay.com/photo/2016/09/04/14/49/church-1644171_1280.jpg" alt="Android 逆向-反编译">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2021-05-14T06:45:00.000Z">2021年05月14日</time></div>
+                    <a href="/2021/05/14/Android-逆向-反编译/" class="has-link-black-ter is-size-6">Android 逆向-反编译</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2021/04/18/FlutterFFI实践/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="https://cdn.pixabay.com/photo/2016/10/16/16/33/dual-screen-1745705_1280.png" alt="Flutter FFI实践">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2021-04-18T02:34:00.000Z">2021年04月18日</time></div>
+                    <a href="/2021/04/18/FlutterFFI实践/" class="has-link-black-ter is-size-6">Flutter FFI实践</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2021/03/10/JNI内存管理及优化/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="https://oscimg.oschina.net/oscnet/787eacb2-5c01-438b-bf35-05420077c4d1.png" alt="（转）JNI内存管理及优化">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2021-03-10T12:08:00.000Z">2021年03月10日</time></div>
+                    <a href="/2021/03/10/JNI内存管理及优化/" class="has-link-black-ter is-size-6">（转）JNI内存管理及优化</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2021/02/26/MixStack/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="https://meterpreter.org/wp-content/uploads/2018/09/flutter.png" alt="{已开源} 阅文 Flutter 混合开发利器 MixStack">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2021-02-26T12:56:00.000Z">2021年02月26日</time></div>
+                    <a href="/2021/02/26/MixStack/" class="has-link-black-ter is-size-6">{已开源} 阅文 Flutter 混合开发利器 MixStack</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2020/10/31/Flutter坑之FlutterFragment中SafeArea失效的问题/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="https://cdn.pixabay.com/photo/2016/09/04/14/49/church-1644171_1280.jpg" alt="Flutter坑之FlutterFragment中SafeArea失效的问题">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-10-31T06:40:00.000Z">2020年10月31日</time></div>
+                    <a href="/2020/10/31/Flutter坑之FlutterFragment中SafeArea失效的问题/" class="has-link-black-ter is-size-6">Flutter坑之FlutterFragment中SafeArea失效的问题</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+    </div>
+</div>
+
+        
+            <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                标签
+            </h3>
+            <div class="field is-grouped is-grouped-multiline">
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Android/">
+                        <span class="tag">Android</span>
+                        <span class="tag is-grey">4</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Flutter/">
+                        <span class="tag">Flutter</span>
+                        <span class="tag is-grey">4</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Http/">
+                        <span class="tag">Http</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Https/">
+                        <span class="tag">Https</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/JNI/">
+                        <span class="tag">JNI</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/java/">
+                        <span class="tag">Java</span>
+                        <span class="tag is-grey">5</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Shell/">
+                        <span class="tag">Shell</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/前端/">
+                        <span class="tag">前端</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Android/">
+                        <span class="tag">安卓</span>
+                        <span class="tag is-grey">5</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/technology/">
+                        <span class="tag">技术文章</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/插件/">
+                        <span class="tag">插件</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/plugins/">
+                        <span class="tag">插件化</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/数学/">
+                        <span class="tag">数学</span>
+                        <span class="tag is-grey">3</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/travel/">
+                        <span class="tag">旅行</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/life/">
+                        <span class="tag">生活</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/thinking/">
+                        <span class="tag">省</span>
+                        <span class="tag is-grey">6</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/zhihu/">
+                        <span class="tag">知乎</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/algorithm/">
+                        <span class="tag">算法</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/网络/">
+                        <span class="tag">网络</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/视频/">
+                        <span class="tag">视频</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/design/">
+                        <span class="tag">设计模式</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/诗歌/">
+                        <span class="tag">诗歌</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/读书/">
+                        <span class="tag">读书</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/逆向/">
+                        <span class="tag">逆向</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/middle/">
+                        <span class="tag">高中</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+        
+            
+<div class="card widget">
+    <div class="card-content">
+        <h3 class="menu-label">
+            标签云
+        </h3>
+        <a href="/tags/Android/" style="font-size: 16px;">Android</a> <a href="/tags/Flutter/" style="font-size: 16px;">Flutter</a> <a href="/tags/Http/" style="font-size: 10px;">Http</a> <a href="/tags/Https/" style="font-size: 10px;">Https</a> <a href="/tags/JNI/" style="font-size: 10px;">JNI</a> <a href="/tags/java/" style="font-size: 18px;">Java</a> <a href="/tags/Shell/" style="font-size: 10px;">Shell</a> <a href="/tags/前端/" style="font-size: 10px;">前端</a> <a href="/tags/Android/" style="font-size: 18px;">安卓</a> <a href="/tags/technology/" style="font-size: 10px;">技术文章</a> <a href="/tags/插件/" style="font-size: 10px;">插件</a> <a href="/tags/plugins/" style="font-size: 10px;">插件化</a> <a href="/tags/数学/" style="font-size: 14px;">数学</a> <a href="/tags/travel/" style="font-size: 12px;">旅行</a> <a href="/tags/life/" style="font-size: 10px;">生活</a> <a href="/tags/thinking/" style="font-size: 20px;">省</a> <a href="/tags/zhihu/" style="font-size: 12px;">知乎</a> <a href="/tags/algorithm/" style="font-size: 12px;">算法</a> <a href="/tags/网络/" style="font-size: 10px;">网络</a> <a href="/tags/视频/" style="font-size: 10px;">视频</a> <a href="/tags/design/" style="font-size: 10px;">设计模式</a> <a href="/tags/诗歌/" style="font-size: 12px;">诗歌</a> <a href="/tags/读书/" style="font-size: 12px;">读书</a> <a href="/tags/逆向/" style="font-size: 10px;">逆向</a> <a href="/tags/middle/" style="font-size: 10px;">高中</a>
+    </div>
+</div>
+
+        
+        </div>
+    
+</div>
+
+                
+
+
+
+
+<div class="column is-4-tablet is-4-desktop is-3-widescreen is-hidden-touch is-hidden-desktop-only has-order-3 column-right is-sticky">
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <h3 class="menu-label">
+            最新文章
+        </h3>
+        
+        <article class="media">
+            
+            <a href="/2021/05/14/Android-逆向-反编译/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="https://cdn.pixabay.com/photo/2016/09/04/14/49/church-1644171_1280.jpg" alt="Android 逆向-反编译">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2021-05-14T06:45:00.000Z">2021年05月14日</time></div>
+                    <a href="/2021/05/14/Android-逆向-反编译/" class="has-link-black-ter is-size-6">Android 逆向-反编译</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2021/04/18/FlutterFFI实践/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="https://cdn.pixabay.com/photo/2016/10/16/16/33/dual-screen-1745705_1280.png" alt="Flutter FFI实践">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2021-04-18T02:34:00.000Z">2021年04月18日</time></div>
+                    <a href="/2021/04/18/FlutterFFI实践/" class="has-link-black-ter is-size-6">Flutter FFI实践</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2021/03/10/JNI内存管理及优化/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="https://oscimg.oschina.net/oscnet/787eacb2-5c01-438b-bf35-05420077c4d1.png" alt="（转）JNI内存管理及优化">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2021-03-10T12:08:00.000Z">2021年03月10日</time></div>
+                    <a href="/2021/03/10/JNI内存管理及优化/" class="has-link-black-ter is-size-6">（转）JNI内存管理及优化</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2021/02/26/MixStack/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="https://meterpreter.org/wp-content/uploads/2018/09/flutter.png" alt="{已开源} 阅文 Flutter 混合开发利器 MixStack">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2021-02-26T12:56:00.000Z">2021年02月26日</time></div>
+                    <a href="/2021/02/26/MixStack/" class="has-link-black-ter is-size-6">{已开源} 阅文 Flutter 混合开发利器 MixStack</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2020/10/31/Flutter坑之FlutterFragment中SafeArea失效的问题/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="https://cdn.pixabay.com/photo/2016/09/04/14/49/church-1644171_1280.jpg" alt="Flutter坑之FlutterFragment中SafeArea失效的问题">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-10-31T06:40:00.000Z">2020年10月31日</time></div>
+                    <a href="/2020/10/31/Flutter坑之FlutterFragment中SafeArea失效的问题/" class="has-link-black-ter is-size-6">Flutter坑之FlutterFragment中SafeArea失效的问题</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/technology/">技术文章</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+    </div>
+</div>
+
+    
+        <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                标签
+            </h3>
+            <div class="field is-grouped is-grouped-multiline">
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Android/">
+                        <span class="tag">Android</span>
+                        <span class="tag is-grey">4</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Flutter/">
+                        <span class="tag">Flutter</span>
+                        <span class="tag is-grey">4</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Http/">
+                        <span class="tag">Http</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Https/">
+                        <span class="tag">Https</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/JNI/">
+                        <span class="tag">JNI</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/java/">
+                        <span class="tag">Java</span>
+                        <span class="tag is-grey">5</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Shell/">
+                        <span class="tag">Shell</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/前端/">
+                        <span class="tag">前端</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/Android/">
+                        <span class="tag">安卓</span>
+                        <span class="tag is-grey">5</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/technology/">
+                        <span class="tag">技术文章</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/插件/">
+                        <span class="tag">插件</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/plugins/">
+                        <span class="tag">插件化</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/数学/">
+                        <span class="tag">数学</span>
+                        <span class="tag is-grey">3</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/travel/">
+                        <span class="tag">旅行</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/life/">
+                        <span class="tag">生活</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/thinking/">
+                        <span class="tag">省</span>
+                        <span class="tag is-grey">6</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/zhihu/">
+                        <span class="tag">知乎</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/algorithm/">
+                        <span class="tag">算法</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/网络/">
+                        <span class="tag">网络</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/视频/">
+                        <span class="tag">视频</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/design/">
+                        <span class="tag">设计模式</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/诗歌/">
+                        <span class="tag">诗歌</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/读书/">
+                        <span class="tag">读书</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/逆向/">
+                        <span class="tag">逆向</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/middle/">
+                        <span class="tag">高中</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <h3 class="menu-label">
+            标签云
+        </h3>
+        <a href="/tags/Android/" style="font-size: 16px;">Android</a> <a href="/tags/Flutter/" style="font-size: 16px;">Flutter</a> <a href="/tags/Http/" style="font-size: 10px;">Http</a> <a href="/tags/Https/" style="font-size: 10px;">Https</a> <a href="/tags/JNI/" style="font-size: 10px;">JNI</a> <a href="/tags/java/" style="font-size: 18px;">Java</a> <a href="/tags/Shell/" style="font-size: 10px;">Shell</a> <a href="/tags/前端/" style="font-size: 10px;">前端</a> <a href="/tags/Android/" style="font-size: 18px;">安卓</a> <a href="/tags/technology/" style="font-size: 10px;">技术文章</a> <a href="/tags/插件/" style="font-size: 10px;">插件</a> <a href="/tags/plugins/" style="font-size: 10px;">插件化</a> <a href="/tags/数学/" style="font-size: 14px;">数学</a> <a href="/tags/travel/" style="font-size: 12px;">旅行</a> <a href="/tags/life/" style="font-size: 10px;">生活</a> <a href="/tags/thinking/" style="font-size: 20px;">省</a> <a href="/tags/zhihu/" style="font-size: 12px;">知乎</a> <a href="/tags/algorithm/" style="font-size: 12px;">算法</a> <a href="/tags/网络/" style="font-size: 10px;">网络</a> <a href="/tags/视频/" style="font-size: 10px;">视频</a> <a href="/tags/design/" style="font-size: 10px;">设计模式</a> <a href="/tags/诗歌/" style="font-size: 12px;">诗歌</a> <a href="/tags/读书/" style="font-size: 12px;">读书</a> <a href="/tags/逆向/" style="font-size: 10px;">逆向</a> <a href="/tags/middle/" style="font-size: 10px;">高中</a>
+    </div>
+</div>
+
+    
+    
+</div>
+
+            </div>
+        </div>
+    </section>
+    <footer class="footer">
+    <div class="container">
+
+        <div class="level">
+            <div class="level-start has-text-centered-mobile">
+                <a class="footer-logo is-block has-mb-6" href="/">
+                
+                    <img src="/images/logo.png" alt="{已开源} 阅文 Flutter 混合开发利器 MixStack" height="28">
+                
+                </a>
+                <p class="is-size-7">
+                &copy; 2021 落叶挽歌&nbsp;
+                Powered by <a href="https://vompom.github.io/" target="_blank">落叶挽歌</a> 
+                
+                <br>
+                <span id="busuanzi_container_site_uv">
+                共<span id="busuanzi_value_site_uv">0</span>个访客
+                </span>
+                
+                </p>
+            </div>
+            <div class="level-end">
+               
+            
+                <div class="field has-addons is-flex-center-mobile has-mt-5-mobile is-flex-wrap is-flex-middle">
+                
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Download on GitHub" href="https://github.com/vompom">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                </p>
+                
+                </div>
+            
+            </div>
+        </div>
+    </div>
+</footer>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/min/moment-with-locales.min.js"></script>
+<script>moment.locale("zh-CN");</script>
+
+    
+    
+    
+    <script src="/js/animation.js"></script>
+    
+
+    
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/js/lightgallery.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js" defer></script>
+    <script src="/js/gallery.js" defer></script>
+    
+
+    
+    
+
+<div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a id="btnUpdateBrowser" href="http://outdatedbrowser.com/">Update
+            my browser now </a></p>
+    <p class="last"><a href="#" id="btnCloseUpdateBrowser" title="Close">&times;</a></p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.js" defer></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        outdatedBrowser({
+            bgColor: '#f25648',
+            color: '#ffffff',
+            lowerThan: 'flex'
+        });
+    });
+</script>
+
+
+    
+    
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.5/unpacked/MathJax.js?config=TeX-MML-AM_CHTML" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    MathJax.Hub.Config({
+        'HTML-CSS': {
+            matchFontHeight: false
+        },
+        SVG: {
+            matchFontHeight: false
+        },
+        CommonHTML: {
+            matchFontHeight: false
+        },
+        tex2jax: {
+            inlineMath: [
+                ['$','$'],
+                ['\\(','\\)']
+            ]
+        }
+    });
+});
+</script>
+
+    
+    
+
+<a id="back-to-top" title="回到顶端" href="javascript:;">
+    <i class="fas fa-chevron-up"></i>
+</a>
+<script src="/js/back-to-top.js" defer></script>
+
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.4/dist/clipboard.min.js" defer></script>
+    <script src="/js/clipboard.js" defer></script>
+    
+
+    
+    
+    
+
+    
+
+
+<script src="/js/main.js" defer></script>
+
+    
+    <div class="searchbox ins-search">
+    <div class="searchbox-container ins-search-container">
+        <div class="searchbox-input-wrapper">
+            <input type="text" class="searchbox-input ins-search-input" placeholder="想要查找什么...">
+            <span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="searchbox-result-wrapper ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+    (function (window) {
+        var INSIGHT_CONFIG = {
+            TRANSLATION: {
+                POSTS: '文章',
+                PAGES: '页面',
+                CATEGORIES: '分类',
+                TAGS: '标签',
+                UNTITLED: '(无标题)',
+            },
+            CONTENT_URL: '/content.json',
+        };
+        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+    })(window);
+</script>
+<script src="/js/insight.js" defer></script>
+<link rel="stylesheet" href="/css/search.css">
+<link rel="stylesheet" href="/css/insight.css">
+    
+</body>
+</html>
