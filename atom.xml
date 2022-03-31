@@ -6,7 +6,7 @@
   <link href="http://vompom.github.com/atom.xml" rel="self"/>
   
   <link href="http://vompom.github.com/"/>
-  <updated>2022-01-16T02:06:18.527Z</updated>
+  <updated>2022-03-31T14:17:14.333Z</updated>
   <id>http://vompom.github.com/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>记一次Android依赖库版本不兼容的问题处理过程</title>
+    <link href="http://vompom.github.com/2022/03/31/%E8%AE%B0%E4%B8%80%E6%AC%A1Android%E4%BE%9D%E8%B5%96-wire-%E4%BD%8E%E7%89%88%E6%9C%AC%E4%B8%8E%E9%AB%98%E7%89%88%E6%9C%AC%E4%B8%8D%E5%85%BC%E5%AE%B9%E7%9A%84%E5%A4%84%E7%90%86%E8%BF%87%E7%A8%8B/"/>
+    <id>http://vompom.github.com/2022/03/31/%E8%AE%B0%E4%B8%80%E6%AC%A1Android%E4%BE%9D%E8%B5%96-wire-%E4%BD%8E%E7%89%88%E6%9C%AC%E4%B8%8E%E9%AB%98%E7%89%88%E6%9C%AC%E4%B8%8D%E5%85%BC%E5%AE%B9%E7%9A%84%E5%A4%84%E7%90%86%E8%BF%87%E7%A8%8B/</id>
+    <published>2022-03-31T02:47:00.000Z</published>
+    <updated>2022-03-31T14:17:14.333Z</updated>
+    
+    <content type="html"><![CDATA[<p>此前我们项目组开发了相关 SDK 并集成到 App 工程中进行测试，发现业务App中的 <a href="https://github.com/square/wire" target="_blank" rel="noopener">wire</a> (一个与 protobuf 相关的库)，版本为1.5.1，而 SDK 中所依赖的版本为3.7.0，两者之间相互不兼容。如果要让业务升级到高版本的库的话，初步排查低版本中使用的某个类而高版本中已废除，单纯的就这一个类涉及100多个文件，工程量太大了，SDK中亦然。所以不能通过简单地更改版本号来解决版本冲突问题，最后经过一系列的尝试，终于解决了该问题。</p><h2 id="分析和处理"><a href="#分析和处理" class="headerlink" title="分析和处理"></a>分析和处理</h2><p>最初集成 SDK 到 App 运行时发现报错：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java.lang.NoClassDefFoundError: Failed resolution of: Lcom/squareup/wire/ProtoEnum;</span><br></pre></td></tr></table></figure></p><p>检查代码发现 <code>ProtoEnum</code>位于wire 1.5.1中，打印依赖树发现App中的库被SDK所依赖的库给覆盖掉了，自动升级到新的版本，但新的版本又不存在该类。</p><blockquote><p><code>|    |    |    \--- com.squareup.wire:wire-runtime:1.5.1 -&gt; 3.7.0</code></p></blockquote><p>以为只是简单的版本冲突的问题，尝试解冲突，我们知道处理Android版本冲突主要使用 <code>exclude`</code>transitive<code></code>force` gralde 处理依赖的关键字解决依赖冲突，但我无论使用什么操作整个项目中所打出来的Apk只存在一个版本：要么1.5.1要么3.7.0，对比两个库：<br><img src="https://img-blog.csdnimg.cn/acb66f45a28a458fb4d00ae03cecafc1.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA6JC95Y-25oy95q2M,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p><p>发现高版本相比于低版本多了太多的类，以及一部分类进行了改名，至此我们可以得出一个结论：<strong>wire库高版本(3.7.1)与低版本(1.5.1)完全不兼容。</strong> 现在摆在我面前有两条路可以走：</p><p>一、手动升级App中的低版本</p><p>二、手动降级SDK中的高版本</p><p>对于第一种，发现到App中大量文件使用 Wire 中的 <code>Message</code> 类，虽然两个版本都有<code>Message</code>类，但是两者“今非昔比”，涉及到太多的方法改动，而 <code>Message</code> 类在App有100+文件使用，如果一个个改过去，可能XXXXXXXX了。</p><p>两个库之间有这么大的差异，甚至1.X版本不支持kotlin，而SDK中大量代码都是使用的 Kotlin，那么第二种降低SDK的高版本也自然变得不太现实。</p><p>向大佬们请教，有被指点到：<strong>是否可以通过 ffat-aar+混淆的方式将 wire库跟SDK合并打包到一起？</strong></p><p>！！大佬毕竟大佬，我的脑子瞬间有一种叮咚的感觉，其实这种方式也就是将SDK变向的重命名，将两个不同的版本库进行“共存”，现在要做的就是：<strong>将 SDK 中的高版本的库包名给改掉，以达到两个不同版本库之间的兼容。</strong></p><p>说干就干，打好了库之后运行发现：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">java.lang.RuntimeException: Duplicate class a.a.a.a found in modules</span><br><span class="line">etified-target-SDK-0.0.1.11-SNAPSHOT-runtime.jar</span><br><span class="line">and ctlogin-0.4.23.04_lol_47-runtime.jar</span><br><span class="line">(clogin-sso.clogin:0.4.23.04_lol_47)</span><br></pre></td></tr></table></figure><p><img src="https://img-blog.csdnimg.cn/41a8f2543baa48c5bf6b5a363cde6a9b.png" alt="在这里插入图片描述"><br>我当时内心就是这个表情,心想：难道<code>wtlogin</code> 大佬们也是想采用这种方式来避免一些库的兼容问题？这问题不大，因为混淆默认从a-z进行命名，只要给混淆再配一些参数就能避免掉这个问题，于是加上以下参数<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-obfuscationdictionary obfucationdictionary.txt</span><br><span class="line">-classobfuscationdictionary obfucationdictionary.txt</span><br><span class="line">-packageobfuscationdictionary obfucationdictionary.txt</span><br></pre></td></tr></table></figure></p><p>当再次运行的时候，发现又报错了：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java.lang.NoClassDefFoundError: Failed resolution of: Lcom/squareup/wire/ProtoAdapter;</span><br></pre></td></tr></table></figure><p>？？？<code>ProtoAdapter</code> 是属于3.7.0高版本的类，不是已经被混淆了么？为什么还会报这个错？<br><img src="https://img-blog.csdnimg.cn/32adc8ebefda4dfea050974c533fb4de.png" alt="在这里插入图片描述"><br>难道是使用混淆的方式是不行的？于是继续搜寻解决方案，了解到使用 <a href="https://github.com/shevek/jarjar" target="_blank" rel="noopener">jarjar.jar</a>可以对包重新命名打包，尝试了一下运行，依然报错<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java.lang.NoClassDefFoundError: Failed resolution of: Lcom/squareup/wire/ProtoAdapter;</span><br></pre></td></tr></table></figure></p><p>到底哪里还有 使用 <code>com/squareup/wire/ProtoAdapter</code>呢？使用<code>jd-gui</code>对重新打好的 jar 包的内容进行搜索.<br><img src="https://img-blog.csdnimg.cn/14e36a6fa7da4feda26779f83b4e9b63.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA6JC95Y-25oy95q2M,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"><br>果然有搜到相应的内容，这是一个字符串，第一反应就是反射。我瞬间明白了，这是一串字符串并且是写死的，回到App中来，如下图所示：<code>wire</code>库的作用是将 .proto 文件生成咱们通常所说的 Model 类，下图的    <code>AudioEffect</code>就是通过 .proto 文件中定义好的属性生成的。<br><img src="https://img-blog.csdnimg.cn/1512ded69e1248ac9e19ef5a4b995c63.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA6JC95Y-25oy95q2M,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"><br>那该怎么办呢？就一个依赖库版本冲突的问题，常规的方法就这些呀，难道真的要肝一波了么？<br><img src="https://img-blog.csdnimg.cn/a5011fe0e772443f8e00fbbdd0b7f09f.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA6JC95Y-25oy95q2M,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"><br>到这里我们大概知道是怎么回事了，我们的目标很简单，就是改一个包名，但是包又在  <code>wire-gradle-plugin</code> 插件中，所以改wire的运行库当然是不行的……</p><p>那还有一个终极办法：<strong>改源码</strong>。</p><p>说干就干，直接拉 <a href="https://github.com/square/wire" target="_blank" rel="noopener">wire</a> 源码</p><p><img src="https://img-blog.csdnimg.cn/2dab42479a29453391b68a979008ae31.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA6JC95Y-25oy95q2M,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"><br>，主要关注以下几个目录：<br><code>wire-gradle-plugin</code>: wire-gradle 插件的主要源码<br><code>wire-compiler</code>: wire编译.proto相关的操作<br><code>wire-runtime</code>: wire运行时所需要的类<br>接下来要做的就是 <strong>右键+rename</strong>,重新编译打包，也……就1000多处改动<img src="https://img-blog.csdnimg.cn/daac3e4f19db4e5c9b8d1354ab65b7b7.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA6JC95Y-25oy95q2M,size_17,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p><p>打完包之后发现整个插件生成出来类的包还是包含<code>&quot;com.squareup.wire.ProtoAdapter&quot;</code>，我的目标是生成：<code>&quot;com.squareup.xxxx_.ProtoAdapter&quot;</code>，跟wire-plguin-gradle的源码，发现有这么一处：</p><p><img src="https://img-blog.csdnimg.cn/fed8bf2812474044b6344ec7d0acf290.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA6JC95Y-25oy95q2M,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p><p>它回在运行中重新从仓库中拉取<code>com.squareup.wire:wire-runtime:3.7.0</code>，于是需要对整个<code>wire-runtime</code>也重新打包，最终生成了一系列jar包如下所示：然后将其作为 plugin </p><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">classpath files(<span class="string">'wire-profiles-3.7.0.jar'</span>)</span><br><span class="line">classpath files(<span class="string">'wire-compiler-3.7.0.jar'</span>)</span><br><span class="line">classpath files(<span class="string">'wire-kotlin-generator-3.7.0.jar'</span>)</span><br><span class="line">classpath files(<span class="string">'wire-gradle-plugin-3.7.0.jar'</span>)</span><br><span class="line">classpath files(<span class="string">'wire-schema-jvm-3.7.0.jar'</span>)</span><br></pre></td></tr></table></figure><p>然后再将运行时所需要的类跟随SDK一起打包</p><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">implementation files(<span class="string">'src/libs/wire-runtime-jvm-3.7.0.jar'</span>)</span><br></pre></td></tr></table></figure><p>重新编译打包，run、install 成功运行！</p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>1、整个一系列操作，让我又学到了很多平时没有接触过的东西，比如：jarjar.jar，这个库对一些比较小的库存，或者说轻量级的库重新命名会比较快速的解决。本文中所述的 wire 库实在是太复杂，只能从源码层面进行操作了。还有就是在看 wire工程源码的时候又发现了一个<strong>shadowJar</strong>(利用gradle shadowjar构建包含依赖的JAR包)，之前一直用 ffat-aar打入的依赖，不知道这个插件怎么样，后面学习学习试试。</p><p>2、在改整个源码之前，其实内心是比较抗拒的，因为一般改源码这种操作都是比较危险，或者更耗时，有可能就算改完了，也不一定能正常运行，一度想放弃，但实在是不想去改业务中那100+的文件，既然一条路走到黑，还是走下去吧，让我明白一定要坚持下去，不要放弃。</p><p>3、在改源码之前向大佬们提出了个问题：<a href="https://mk.woa.com/q/281432" target="_blank" rel="noopener">如何解决Android依赖(以 com.squareup.wire 为例)低版本与高版本不兼容的问题？</a>，当时已经踩过大部分方式的坑了，现在回过头发现，收获满满。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;此前我们项目组开发了相关 SDK 并集成到 App 工程中进行测试，发现业务App中的 &lt;a href=&quot;https://github.com/square/wire&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;wire&lt;/a&gt; (一个与 protobu</summary>
+      
+    
+    
+    
+    
+    <category term="技术文章" scheme="http://vompom.github.com/tags/technology/"/>
+    
+  </entry>
   
   <entry>
     <title>快捷-Mac桌面adb push小工具</title>
@@ -483,32 +505,6 @@
     
     
     <category term="省" scheme="http://vompom.github.com/tags/thinking/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>《费马大定理》</title>
-    <link href="http://vompom.github.com/2020/06/09/%E3%80%8A%E8%B4%B9%E9%A9%AC%E5%A4%A7%E5%AE%9A%E7%90%86%E3%80%8B/"/>
-    <id>http://vompom.github.com/2020/06/09/%E3%80%8A%E8%B4%B9%E9%A9%AC%E5%A4%A7%E5%AE%9A%E7%90%86%E3%80%8B/</id>
-    <published>2020-06-09T14:32:00.000Z</published>
-    <updated>2021-07-27T07:36:11.745Z</updated>
-    
-    <content type="html"><![CDATA[<p>大约在1637年左右，法国学者费马在阅读丢番图《算术》拉丁文译本时，曾在第11卷第8命题旁写道：</p><blockquote><p>将一个立方数分成两个立方数之和，或一个四次幂分成两个四次幂之和，或者一般地将一个高于二次的幂分成两个同次幂之和，这是不可能的。关于此，我确信已发现了一种美妙的证法，可惜这里空白的地方太小，写不下。</p></blockquote><p>其中的条件用数学表达语言则：<br>$$<br>当整数n &gt;2时，关于x, y, z的方程 x^n + y^n = z^n 没有正整数解。<br>$$</p><p>这个数学理论简单明了，初中生都能看懂的理论，但是没有被得到最终的证明，费马自己提出来，没有得到完全的证明，他只证明了n=4的情况，后来欧拉沿着费马“无穷递降法”的思路，再向前迈出小小的一步，将n=4延伸到n=3的情形。但是大于4的情况呢？</p><p>费马的一段话，让数学界开始了长达300年的数学接力，有高斯、欧拉等诸多著名数学家都有尝试去彻底解决这个问题，但都无果。甚至后来开始推断出这是一个不能被证明的理论，在证明路上数学家们一直因证明失败而被打击，但这并不不能阻碍数学家们对这个问题的证明。最终，358年后，由英国数学家安德鲁.怀尔斯在1994成功完成了证明。看似轻描淡写，但有多少数学家在他证明的路上铺上了砖石呢？从费马提出到欧拉解决了n=3的情况，中途诸多数学家的猜想与推论，最后谷山与志村提出的“谷山-志村猜想”，<strong>只要能证明“谷山-志村猜想”就能自动证明费马大定理</strong>。就这样，一个大问题被一点点地解决了，但时间长达300多年。</p><p>《费马大定理》是是一部数学史，整本书以时间为基线，讲从费马提出这个问题开始，到最终怀尔斯完全证明费马大定理的过程。自己虽然对于数学没有很深入的了解，但是整本书看下来也是十分的吸引人，像我们熟知的毕达哥拉斯定理（勾股定理）与费马大定理联系起来（n=2的情况是有正数解的），$\sqrt{2}$ 是无理数的欧几里得证明等，就算对数学不太了解的人，也会为其中的证明技巧所感叹。</p><p>当然本书中所有的数学家的故事都是一个振奋人心的角色，为证明费马大定理前赴后继，铸就了数学史诗，关于他们奋斗的故事，可以去仔细了解。除此之外，这本书给人最大的感触就是：<strong>站在巨人的肩膀上</strong>。</p><p>如果说怀尔斯证明出来费马大定理是他一个人的功劳，那肯定很多人不会服了。如果说怀尔斯是站在了巨人的肩膀上，那么前面那么多的数学家共同组成了这个巨人。对于怀尔斯之前的谷山与志村则站在了“模形式”巨人上。对于怀尔斯证明完成之后，要直接使用费马大定理，那么怀尔斯又与前面那么多的数学家一起组成了更大的巨人。之后的数学学科利用费马大定理做一些更深入的研究后，那么这个巨人便变得更大了。</p><p>为了证明费马大定理，产生了许多数学成果，拓宽了数学的领域，促进了数学的发展，数学家们将数学这个巨人变得越来越大。现代学科研究，利用数学，将物理学科的巨人变大，将计算机学科巨人变大……最终使整个科技巨人变大。而我们只需要站在巨人的肩膀上，只需要鼠标一点，这些巨人便开始奔跑。虽然说积跬步虽也能成千里，但远不如坐上高铁走四方，这便是站在巨人的肩膀上，而巨人是一代代人前赴后继的结果。</p><p>最后补充一个：为什么费马大定理在数学史上的地位如此重要？<br>有人答道</p><blockquote><p>丢番图、毕达哥拉斯、费马、热尔曼、柯西、欧拉、希尔伯特、哥德尔、图灵、伽罗瓦、谷山丰、志村五郎、沃尔夫斯凯尔、怀尔斯……这些数学史上最伟大的名字，在整个「费马定理大戏」上轮番登场。他们有的奠定了数论基础、有的为提出费马定理铺平道路，有的提出问题却不给解答，有的人尝试了却失败，有的人只能证明部分结论，有的人没有想过证明这个定理却因为自己另一个数学理论创新而成为整个解答的关键，而这个解答却一度被学界不能理解而弃如敝履，有的人在攀登数学高峰的途中逝世，也有的人在面对人生失意决心自尽却因死前无聊看到了这个费马定理而心生兴趣尝试解答最后放弃自杀，设立巨额奖金奖励解答者！</p></blockquote><p>这是一部数学史诗，也是人类智慧最伟大的故事之一。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;大约在1637年左右，法国学者费马在阅读丢番图《算术》拉丁文译本时，曾在第11卷第8命题旁写道：&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;将一个立方数分成两个立方数之和，或一个四次幂分成两个四次幂之和，或者一般地将一个高于二次的幂分成两个同次幂之和，这是不可能的。关于此，我</summary>
-      
-    
-    
-    
-    <category term="读书电影" scheme="http://vompom.github.com/categories/movie/"/>
-    
-    
-    <category term="数学" scheme="http://vompom.github.com/tags/数学/"/>
     
   </entry>
   
