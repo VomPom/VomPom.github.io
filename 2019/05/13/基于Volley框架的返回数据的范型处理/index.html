@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="落叶挽歌"><title>基于Volley框架的返回数据的范型处理 | 落叶挽歌</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/normalize.css/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/pure-min.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = 'https://hm.baidu.com/hm.js?' + 'a642bfb7c75afbc4fe68fd942180298b';
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+  })();
+</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.css"><link rel="stylesheet" href="/css/prism.css" type="text/css"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">基于Volley框架的返回数据的范型处理</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">VomPom's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">基于Volley框架的返回数据的范型处理</h1><div class="post-meta">2019年05月13日<span> | </span><span class="category"><a href="/categories/technology/">技术文章</a></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 967</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 4</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><p>在平时最普通的Volley的网络请求中，我们StringRequest是这样请求网络数据的：</p>
+<pre><code>StringRequest stringRequest = new StringRequest(&quot;http://www.baidu.com&quot;,
+        new Response.Listener&lt;String&gt;() {
+            @Override
+            public void onResponse(String response) {
+                Log.d(&quot;TAG&quot;, response);
+            }
+        }, new Response.ErrorListener() {
+    @Override
+    public void onErrorResponse(VolleyError error) {
+        Log.e(&quot;TAG&quot;, error.getMessage(), error);
+    }
+</code></pre><p>注意在onResponse的时候是拿到的string类型，拿到string后对其再进行相关的解析，我们是否是可以对其直接封装然后拿到具体想要类型的model数据结构呢？所以对其网络请求架构进行一次封装，到达如下效果：</p>
+<pre><code>GetGoodDetailByGidRequest getGoodDetailByGidRequest = new GetGoodDetailByGidRequest(mCouponId,
+           new RequestListener&lt;List&lt;CouponModel&gt;&gt;() {
+               @Override
+               public void onSuccess(List&lt;CouponModel&gt; result) {
+               }
+               @Override
+               public void onError(Exception e) {
+                   e.printStackTrace();
+                   stopLoadingDialog();
+               }
+           });
+</code></pre><p>这里我们在构造Request的时候指定了返回数据的类型，这样的话就方便了我们在写业务的时候直接使用解析好的数据结构，具体如何做到的呢？</p>
+<p><strong>一、让每个Request基于一个带有范型请求类</strong></p>
+<pre><code>public abstract class BaseApiRequest&lt;T&gt;  
+</code></pre><p>这里的T就是目标请求期望的model类<br>在具体实现的时候继承基类，并指定返回类型，下面是一个例子：</p>
+<pre><code>public class GetGoodDetailByGidRequest extends BaseApiRequest&lt;List&lt;CouponModel&gt;&gt; {
+    public static final String url = CURL.GoodDetailURL;
+    public GetGoodDetailByGidRequest(String goodId, RequestListener&lt;List&lt;CouponModel&gt;&gt; requestListener) {
+            super(requestListener);
+            this.mUrlParams.put(&quot;id&quot;, goodId);
+    }
+    @Override
+    public String getBaseUrl() {
+            return url;
+        }
+}
+</code></pre><p><strong>二、在基类中构造网络请求</strong>    </p>
+<pre><code>  protected StringRequest getStringRequest() {
+    return new StringRequest(requestMethod, getRequestUrl(),
+            response -&gt; parseJson(response),
+            error -&gt; requestListener.onError(error)) {
+        @Override
+        protected Map&lt;String, String&gt; getParams() {
+            return mEntityParams;
+        }
+    };
+}
+</code></pre><p>在此处实现可以看到Request在基类中进行，然后分别处理返回结果</p>
+<p><strong>三、对返回结果进行解析</strong>    </p>
+<pre><code>    private void parseJson(String response) {
+    int responseCode = 0;
+    int errorCode = 400;
+    try {
+        JSONObject jsonObject = new JSONObject(response);
+
+        String resultString = jsonObject.getString(&quot;data&quot;);
+
+        if (jsonObject.has(&quot;code&quot;)) {
+            responseCode = jsonObject.getInt(&quot;code&quot;);
+        }
+        if (jsonObject.has(&quot;error&quot;)) {
+            errorCode = jsonObject.getInt(&quot;error&quot;);
+        }
+
+        if (responseCode == 200 || errorCode == 0) {
+            if (!TextUtils.isEmpty(response)) {
+                Type type = getTType(requestListener.getClass());
+                //泛型是实体或者List等类型
+                T t = JsonUtils.fromJson(resultString, type);
+                requestListener.onSuccess(t);
+                return;
+            }
+            ToastUtils.showToast(&quot;Data is empty!&quot;);
+        }
+        ToastUtils.showToast(&quot;Response code is error.&quot;);
+        requestListener.onError(new ParseError());
+    } catch (JSONException e) {
+        ToastUtils.showToast(e.toString());
+        e.printStackTrace();
+    }
+}
+</code></pre><p>这里是最关键的一步，由于和后端约定好相关返回字段，那么只需要解析字段中目标model的数据，其中比较重要的是这段代码</p>
+<pre><code>Type type = getTType(requestListener.getClass());
+//泛型是实体或者List等类型
+ T t = JsonUtils.fromJson(resultString, type);
+ requestListener.onSuccess(t);
+</code></pre><p>通过封装好的 JsonUtils将String转化为对应的model类型，我们知道json转实体对象的时候，需要指明其类type，那这里的type是如何获取到的呢？</p>
+<p>其中getTType ()的具体实现为：</p>
+<pre><code> public static Type getTType(Class&lt;?&gt; clazz) {
+    //以Type的形式返回本类直接实现的接口.
+    Type[] types = clazz.getGenericInterfaces();
+    clazz.getInterfaces();
+    if (types.length &gt; 0) {
+        //返回表示此类型实际类型参数的 Type 对象的数组
+        Type[] interfacesTypes = ((ParameterizedType) types[0]).getActualTypeArguments();
+        return interfacesTypes[0];
+    }
+    return null;
+}
+</code></pre><p>通过次方法能够获取到请求实现中所指明的请求类型，其中getGenericInterfaces等相关原理可以阅读：<a href="https://my.oschina.net/617669559/blog/3012228" target="_blank" rel="noopener">https://my.oschina.net/617669559/blog/3012228</a></p>
+<p>所以对于    </p>
+<pre><code>public class GetGoodDetailByGidRequest extends BaseApiRequest&lt;List&lt;CouponModel&gt;&gt;
+</code></pre><p>那么获取到的就是List<couponmodel>类型</couponmodel></p>
+<p><strong>四、通过Listener回调相关解析结果</strong>    </p>
+<p>拿到解析好的result并回调给构造Request方法中的listener使用</p>
+<pre><code>T t = JsonUtils.fromJson(resultString, type);
+requestListener.onSuccess(t);
+</code></pre><p>这样对整个网络请求后的返回数据直接进行解析方便多了。</p>
+<p><strong>总结：</strong></p>
+<p>1、本文最主要是对基本Request类进行改造，以达到不需要每次重复写解析返回的String数据</p>
+<p>2、在获取目标的类的类型的时候，主要是去获取基类中的“T”类型</p>
+<p>3、设计不仅适用用Volley同样适用于其他类似的网络请求框架</p>
+<p>小弟不才，如有问题，欢迎指出。</p>
+</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css"><script type="text/javascript" src="/js/donate.js" successtext="复制成功!"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" arget="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="/img/ali_pay.png"></li><li id="WeChat" qr="/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"><a href="/tags/Android/"><i class="fa fa-tag"></i>安卓</a></div><div class="post-nav"><a class="pre" href="/2019/05/20/95后的你们毕业半年过得还好么？/">95后，毕业半年，你过得好吗？</a><a class="next" href="/2019/05/05/My-Java反射中getGenericInterfaces和getInterfaces的解读/">Java反射中getGenericInterfaces和getInterfaces的解读</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"><div id="local-search-result"></div></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">29</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法研究/">算法研究</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/逆向/" style="font-size: 15px;">逆向</a> <a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/网络/" style="font-size: 15px;">网络</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/读书/" style="font-size: 15px;">读书</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/插件/" style="font-size: 15px;">插件</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/数学/" style="font-size: 15px;">数学</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/视频/" style="font-size: 15px;">视频</a> <a href="/tags/诗歌/" style="font-size: 15px;">诗歌</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/前端/" style="font-size: 15px;">前端</a> <a href="/tags/面试/" style="font-size: 15px;">面试</a> <a href="/tags/ffmpeg/" style="font-size: 15px;">ffmpeg</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a> <a href="/tags/flutter/" style="font-size: 15px;">flutter</a> <a href="/tags/mac/" style="font-size: 15px;">mac</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2022/07/03/写了一个场所码小工具/">写了一个场所码小工具</a></li><li class="post-list-item"><a class="post-list-link" href="/2022/05/22/FFmpeg之AVFrame转Android-Bitmap/">FFmpeg之AVFrame转Android Bitmap</a></li><li class="post-list-item"><a class="post-list-link" href="/2022/03/31/记一次Android依赖-wire-低版本与高版本不兼容的处理过程/">记一次Android依赖库版本不兼容的问题处理过程</a></li><li class="post-list-item"><a class="post-list-link" href="/2022/01/15/快捷-Mac桌面adb-push小工具/">快捷-Mac桌面adb push小工具</a></li><li class="post-list-item"><a class="post-list-link" href="/2021/11/14/音视频-初识FFmpeg/">Android音视频-初识FFmpeg</a></li><li class="post-list-item"><a class="post-list-link" href="/2021/07/06/记一段-Android-面试时光/">记一段 Android 面试时光</a></li><li class="post-list-item"><a class="post-list-link" href="/2021/07/06/逆向相关经验总结/">逆向相关经验总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2021/05/14/Android-逆向-反编译/">Android 逆向-反编译</a></li><li class="post-list-item"><a class="post-list-link" href="/2021/04/18/FlutterFFI实践/">Flutter FFI实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2021/03/10/JNI内存管理及优化/">（转）JNI内存管理及优化</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 了解更多</i></div><ul></ul><a href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank">豆瓣</a><ul></ul><a href="https://www.zhihu.com/people/luoyewange" title="知乎" target="_blank">知乎</a><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a><ul></ul><a href="https://blog.csdn.net/u010107153" title="CSDN" target="_blank">CSDN</a><ul></ul><a href="mailto:1607637473@qq.com" title="邮箱" target="_blank">邮箱</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2022 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+if (search_path.length == 0) {
+   search_path = 'search.xml';
+}
+var path = '/' + search_path;
+searchFunc(path, 'local-search-input', 'local-search-result');
+</script><script type="text/javascript" src="/js/copycode.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script></div></body></html>
