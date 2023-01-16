@@ -16,7 +16,7 @@
 </ul>
 <p>OpenGL的API在调用时需要有正确的上下文，在Android中称为<code>EGL Context</code>，IOS中是<code>EAGL Context</code>，其它平台有其它平台的叫法，但原理类似。一个线程需要跟EGL Context绑定才能正确使用OpenGL的API，否则调用不会有任何效果，具体可参考我的一篇文章：<a target="_blank" rel="noopener" href="https://juejin.cn/post/6844903858380996616">《OpenGL ES 高级进阶：EGL及GL线程》</a>。</p>
 <blockquote>
-<p>【转载注】这也是我碰到的第一个坑，因为从 Unity 调用到 Android 侧的时候，gl渲染环境没有在一个地方。我花了很大的精力去排查前面shader相关的渲染问题，一直没有注意这个问题，所以浪费了大量时间。我个人认为这个问题需要像使用一门新语言的时候要先确保它能打印出”Hello World”一样，是整个流程的前提。 可以利用 <code>GLES30.glGenTextures(textures.size, textures, 0)</code>，检查创建的texture的值是否大于0来判断。</p>
+<p>【转载注】这也是我碰到的第一个坑，因为从 Unity 调用到 Android 侧的时候，gl渲染环境没有在一个地方。我花了很大的精力去排查前面shader相关的渲染问题，一直没有注意这个问题，所以浪费了大量时间。我个人认为这个问题需要像使用一门新语言的时候要先确保它能打印出”Hello World”一样，是整个流程的前提。</p>
 </blockquote>
 <ul>
 <li><strong>GL Program不正确</strong></li>
