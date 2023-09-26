@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>http://vompom.github.com/2023/09/26/Android-J2V8-%E5%AE%9E%E8%B7%B5/</loc>
+    <loc>http://vompom.github.com/2023/09/30/Android-J2V8-%E5%AE%9E%E8%B7%B5/</loc>
     
     <lastmod>2023-09-26</lastmod>
     
@@ -502,6 +502,13 @@
   
   <url>
     <loc>http://vompom.github.com/tags/MediaCodec/</loc>
+    <lastmod>2023-09-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>http://vompom.github.com/tags/JavaScript/</loc>
     <lastmod>2023-09-26</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
