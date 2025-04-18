@@ -1,0 +1,1 @@
+{"data":{"total":1,"count":4,"pages":[{"index":1,"count":4,"api":"api/archives/2023/page.1.json","info":{"type":"archive","year":2023}}],"info":{"type":"archive","year":2023,"months":[{"month":1,"api":"api/archives/2023/01.json"},{"month":9,"api":"api/archives/2023/09.json"},{"month":10,"api":"api/archives/2023/10.json"}]}},"api":"api/archives/2023.json"}
