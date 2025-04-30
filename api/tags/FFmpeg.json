@@ -1,1 +1,1 @@
-{"data":{"total":1,"count":4,"pages":[{"index":1,"count":4,"api":"api/tags/FFmpeg/page.1.json","info":{"type":"tag","name":"FFmpeg","slug":"FFmpeg"}}],"info":{"type":"tag","name":"FFmpeg","slug":"FFmpeg"}},"api":"api/tags/FFmpeg.json"}
+{"data":{"total":1,"count":1,"pages":[{"index":1,"count":1,"api":"api/tags/ffmpeg/page.1.json","info":{"type":"tag","name":"ffmpeg","slug":"ffmpeg"}}],"info":{"type":"tag","name":"ffmpeg","slug":"ffmpeg"}},"api":"api/tags/ffmpeg.json"}
