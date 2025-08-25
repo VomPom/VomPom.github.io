@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="落叶挽歌"><title>（转）OpenGL黑屏及渲染不出来的常见原因总结 | 落叶挽歌</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="https://unpkg.com/normalize.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/pure-min.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="https://unpkg.com/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?' + 'a642bfb7c75afbc4fe68fd942180298b';
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+  })();</script><script type="text/javascript" src="https://unpkg.com/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="https://unpkg.com/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="https://unpkg.com/toastr/build/toastr.min.css"><div class="darkmode-toggle">🌓</div><script>var prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+var toggle = document.querySelector('.darkmode-toggle');
+var html = document.querySelector('html');
+
+html.dataset.dark = localStorage.dark || prefersDarkMode.matches;
+
+toggle.addEventListener('click', () => {
+localStorage.dark = !(html.dataset.dark == 'true');
+html.dataset.dark = localStorage.dark;
+});</script><meta name="generator" content="Hexo 7.3.0"><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">（转）OpenGL黑屏及渲染不出来的常见原因总结</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">（转）OpenGL黑屏及渲染不出来的常见原因总结</h1><div class="post-meta">2023年01月15日<span> | </span><span class="category"><a href="/categories/technology/">技术文章</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 2.2k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 7</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><p>最近在做 Unitiy 与原生渲染相关的研究学习，对于OpenGL这块自己也是接触不多，有很多的坑需要自己去踩，做的过程中遇到最多的问题是：<strong>渲染黑屏</strong> 在掘金上搜到这篇文章<a href="https://juejin.cn/post/6844903910742687751">《OpenGL黑屏及渲染不出来的常见原因总结》</a>很不错，于是记录转载过来，方便日后学习以及问题排查。</p>
+<p>原文链接：<br><a href="https://juejin.cn/post/6844903910742687751">https://juejin.cn/post/6844903910742687751</a></p>
+<h2 id="原文"><a href="#原文" class="headerlink" title="原文"></a>原文</h2><p>做OpenGL开发的同学，想必一定碰到过黑屏的问题，特别是刚接触OpenGL的同学，可能会觉得黑屏问题让人相当头疼，因为OpenGL的查错没有一般编程时那么简单，我们通常是利用glGetError()这个API来获取错误码，但这个方法获取的错误是调用这个方法时，已经产生的错误，它有可能是很久之前产生的，这样查越来还是比较不方便的，而且，有些黑屏以及渲染不出来的情况下，glGetError()也不会报任何错。</p>
+<p>在给大家总结常见的黑屏原因之前，我们先来铺垫一下基础知识，其实屏幕也是一块frame buffer，但它比较特殊，是0号<code>frame buffer</code>，我们如果自己申请frame buffer的话，得到的id是大于0的。那么frame buffer它就会有自己的颜色，如果不特意设置的话，它就是黑色的，因此如果我们渲染操作未正确执行，什么也没渲染出来，自然看到了底色的黑色。</p>
+<p>我们也可以通过<code>glClearColor()+glClear()</code>来设置消除颜色及执行消除操作，来将一个frame buffer清成某种颜色。因此，如果你将frame buffer清成了别的颜色，但其它渲染操作未正确执行，你有可能也不是黑屏，而是你设置的消除颜色，这里也一并总结了，统成为黑屏，同时也包括其它一些不正确的情形。<br>如果不是渲染到屏幕上，是渲染到一个离屏的frame buffer上，同样也会遇到各种黑掉或者渲染不出来的情况，有些原因会同时导致上屏和离屏都黑，有些只影响其中一种情况。</p>
+<p>下面给大家总结一下：</p>
+<ul>
+<li><strong>调用线程的Context不正确</strong></li>
+</ul>
+<p>OpenGL的API在调用时需要有正确的上下文，在Android中称为<code>EGL Context</code>，IOS中是<code>EAGL Context</code>，其它平台有其它平台的叫法，但原理类似。一个线程需要跟EGL Context绑定才能正确使用OpenGL的API，否则调用不会有任何效果，具体可参考我的一篇文章：<a href="https://juejin.cn/post/6844903858380996616">《OpenGL ES 高级进阶：EGL及GL线程》</a>。</p>
+<blockquote>
+<p>【转载注】这也是我碰到的第一个坑，因为从 Unity 调用到 Android 侧的时候，gl渲染环境没有在一个地方。我花了很大的精力去排查前面shader相关的渲染问题，一直没有注意这个问题，所以浪费了大量时间。我个人认为这个问题需要像使用一门新语言的时候要先确保它能打印出”Hello World”一样，是整个流程的前提。</p>
+</blockquote>
+<ul>
+<li><strong>GL Program不正确</strong></li>
+</ul>
+<p>OpenGL渲染需要通过GL Program，它就是一个程序，和我们的普通程序是一个道理，只不过它是运行在GPU上的，如果它不正确了，那自然就渲染不出正确的结果，常见的不正确原因为shader编译失败，通常是因为语法错误，可以用glGetShaderInfoLog()来在编译之后查看相关shader信息，以及在Link后用glGetProgramInfoLog()查看相关program信息，如果得到的信息为空，则说明没有错。</p>
+<ul>
+<li><strong>没有use program</strong></li>
+</ul>
+<p>渲染前需要通过glUseProgran设置本次渲染所用的program，如果未设置则无法执行到对应的shader，自然无法渲染出来。</p>
+<ul>
+<li><strong>未调用glDrawXXX()</strong></li>
+</ul>
+<p>要渲染出来东西，必须调用glDrawXXX()，一般很少出现没调的情况，一般都是低级失误，最好也排查一下。</p>
+<p>对于底层是多buffer实现的surface，渲染后未进行swap buffer<br>常见的是双buffer，此时有一个back buffer和一个front buffer，front buffer是正在显存的这个，back buffer是正在渲染的，如果draw call后没有swap buffer，那back buffer不会呈现出来，因此渲染不出来，这里是特定上屏，如果渲染不是要上屏，则无需考虑这个问题。</p>
+<ul>
+<li><strong>frame buffer的attachment不正确</strong></li>
+</ul>
+<p>在离屏渲染情况下，当我们要渲染到一个frame buffer上，这个frame buffer必须正确绑定了attachment，否则相当于frame buffer是个空壳，它没有任何可用于承载渲染结果的空间。</p>
+<ul>
+<li><strong>顶点attribute值设置错误</strong></li>
+</ul>
+<p>顶点关系到渲染到什么位置，如果设置错误导致渲染的位置在可视范围之外，那么就看不到了，这里的范围是什么呢？如果直接用NDC坐标渲染，那就是-1~1,如果是用世界坐标来渲染，那就要看具体设置的投影矩阵，详细原理可参考我的另一篇文章《OpenGL 3D渲染技术：坐标系及矩阵变换》。</p>
+<p>attribute未启用<br>我们通过想要设置一个attribute的值，需要获取这个attribute的location，并通过glVertexAttribPointer()给它设置值，但别忘了需要使用glGetAttribLocation()来启用这个location，不然设置了也没有用，默认是不启用的。</p>
+<ul>
+<li><strong>VAO&#x2F;VBO未绑定或者绑定错误</strong></li>
+</ul>
+<p>如果是用VAO&#x2F;VBO的方式渲染，在渲染前要绑定正确的VAO&#x2F;VBO，否则等于没指定或者指定错了顶点，就渲染不出来了。</p>
+<ul>
+<li><strong>VAO&#x2F;VBO方式渲染之后未重置，后面接着用非VAO&#x2F;VBO方式渲染</strong></li>
+</ul>
+<p>在用VAO&#x2F;VBO方式渲染之后如果未重置，那么顶点绑定的还是VAO&#x2F;VBO指定的顶点，此时如果再用普通的glVertexAttribPointer()的方式指定顶点渲染，那用法上会冲突，因为VAO&#x2F;VBO的方式要求glVertexAttribPointer()函数不指定顶点数据，而普通用法中glVertexAttribPointer()又要指定顶点数据，此时容易造成顶点混乱，渲染结果不正确。</p>
+<p>View Port设置错误<br>View Port即视口，可以理解成我们通过一个窗口去看见OpenGL世界坐标系里渲染的景物，就像我们通过窗口看到室外的景物一样，如果这个窗口没设置或者设置不正确，也会导致看不到东西，一般情况下，我们会将它设置为surface的大小，这样渲染出来的东西就刚好填满这个surface。</p>
+<ul>
+<li><strong>没有渲染到0号frame buffer</strong></li>
+</ul>
+<p>有时候渲染操作有很多步，想做完这些步骤后，再将做好的结果显示的屏幕上，这时就会用一些frame buffer来做离屏渲染，但在最后一步渲染到屏幕上时，需要将frame buffer绑定回0号，才能上屏。</p>
+<ul>
+<li><strong>渲染了一个不正确的纹理</strong></li>
+</ul>
+<p>例如我们希望对一个纹理做一些处理然后渲染出来，但如果这个纹理本身是不正确的，例如前面的步骤出了一些错，导致给过来的纹理id不正确，比如是0，或者纹理id是正确的，但这个纹理是全黑的或者空的，也会导致黑屏。</p>
+<ul>
+<li><strong>glDrawXXX()方法传递的顶点数不正确</strong></li>
+</ul>
+<p>我们在调用glDrawXXX()，会设置顶点数组的开始位置和数量，如果设置不正确，导致传递的顶点是0个，也会导致渲染不出来任何东西。</p>
+<ul>
+<li><strong>顶点buffer的position不正确</strong></li>
+</ul>
+<p>这一点主要是针对java及kotlin，glVertexAttribPointer()接受数据时是通过一个buffer，而我们往buffer是put数据后，buffer的position会相应地往后移动，因此在调用glVertexAttribPointer()之前，记得将position设回到0，否则它将从末尾开始取数据，当然就取不到了。</p>
+<ul>
+<li><strong>面剔除的原因</strong></li>
+</ul>
+<p>如果开启了cull face，那么会按你指定的cull方式来剔除指定顶点旋转顺序的三角面片，如果视线方向看过去的刚好被剔除了，自然就看不见了。</p>
+<ul>
+<li><strong>未开启颜色混合渲染了有透明度的纹理</strong></li>
+</ul>
+<p>OpenGL默认是不开启颜色混合的，这会导致透明的部分通常会被渲染成黑色，而不是透出下面的颜色，具体可以参数我的一篇文章：《OpenGL ES 高级进阶：颜色混合》。</p>
+<p>作者：程序员kenney</p>
+<p>链接：<a href="https://juejin.cn/post/6844903910742687751">https://juejin.cn/post/6844903910742687751</a></p>
+<p>来源：稀土掘金</p>
+</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css?v=1.0.0"><script type="text/javascript" src="/js/donate.js?v=1.0.0" successtext="复制成功！"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" target="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="https://cdn.julis.wang/blog/img/ali_pay.jpeg"></li><li id="WeChat" qr="https://cdn.julis.wang/blog/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/OpenGL/" rel="tag">OpenGL</a></li></ul></div><div class="post-nav"><a class="pre" href="/2023/09/30/Android-J2V8-%E5%AE%9E%E8%B7%B5/">Android 基于 J2V8 运行 JavasScript  实践</a><a class="next" href="/2023/01/09/FFmpeg-so-%E7%BC%96%E8%AF%91%E6%95%B4%E7%90%86/">FFmpeg.so 编译总结</a></div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:admin@domain.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">38</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/%E8%A7%86%E9%A2%91/" style="font-size: 15px;">视频</a> <a href="/tags/flutter/" style="font-size: 15px;">flutter</a> <a href="/tags/mac/" style="font-size: 15px;">mac</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/">手写一个精简版Koin：深入理解依赖注入核心原理</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/">[Compose Multiplatform]跨平台博客应用实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/05/16/%E9%B8%BF%E8%92%99-%E5%86%99%E4%BA%86%E4%B8%AA%E5%9F%BA%E4%BA%8EHexo%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%B8%BF%E8%92%99App/">[鸿蒙]写了个基于Hexo博客的鸿蒙App</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/">KV-存储之mmkv</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/17/Learn-from-RetroFit/">RetroFit2 源码学习相关</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/02/24/Android%E5%B1%8F%E5%B9%95%E5%88%B7%E6%96%B0%E6%9C%BA%E5%88%B6/">Android屏幕刷新机制</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/11/10/%E5%85%B3%E4%BA%8E-pthread-key-t-%E5%AF%BC%E8%87%B4%E7%9A%84-Android-Crash-%E7%9A%84%E6%8E%A2%E7%B4%A2/">关于 pthread_key_t 导致的 Android Crash 的探索</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/08/25/%E9%97%AE%E9%A2%98%E8%AE%B0%E5%BD%95-Hexo-TypeError-isDate-is-not-a-function/">[问题记录]Hexo TypeError: isDate is not a function</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/07/09/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91%E4%BA%BA%E5%91%98%E7%9A%84%E5%B8%B8%E9%9D%92%E6%8A%80%E8%83%BD/">[译]软件开发人员的常青技能</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/04/11/%E5%85%B3%E4%BA%8EWindows%E4%B8%AD%E6%96%87%E5%AD%97%E7%AC%A6%E4%B9%B1%E7%A0%81/">UTF-8字符编码相关</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a><ul></ul><a href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank">豆瓣</a><ul></ul><a href="mailto:1607637473@qq.com" title="邮箱" target="_blank">邮箱</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2025 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+if (search_path.length == 0) {
+  search_path = 'search.xml';
+}
+var path = '/' + search_path;
+searchFunc(path, 'local-search-input', 'local-search-result');
+</script><script type="text/javascript" src="/js/copycode.js?v=1.0.0" successtext="复制成功！"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css?v=1.0.0"><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script></div></body></html>

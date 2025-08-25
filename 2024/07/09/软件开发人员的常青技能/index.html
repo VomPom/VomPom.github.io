@@ -1,0 +1,455 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="落叶挽歌"><title>[译]软件开发人员的常青技能 | 落叶挽歌</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="https://unpkg.com/normalize.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/pure-min.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="https://unpkg.com/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?' + 'a642bfb7c75afbc4fe68fd942180298b';
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+  })();</script><script type="text/javascript" src="https://unpkg.com/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="https://unpkg.com/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="https://unpkg.com/toastr/build/toastr.min.css"><div class="darkmode-toggle">🌓</div><script>var prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+var toggle = document.querySelector('.darkmode-toggle');
+var html = document.querySelector('html');
+
+html.dataset.dark = localStorage.dark || prefersDarkMode.matches;
+
+toggle.addEventListener('click', () => {
+localStorage.dark = !(html.dataset.dark == 'true');
+html.dataset.dark = localStorage.dark;
+});</script><meta name="generator" content="Hexo 7.3.0"><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">[译]软件开发人员的常青技能</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">[译]软件开发人员的常青技能</h1><div class="post-meta">2024年07月09日<script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 3.8k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 12</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><p>最近在 Github 看到这一篇将程序员一直需要使用的非技术核心能力进行了总结，深受里面内容的启发，语言、框架都是会过时的，但有些技能无论是什么语言或者框架都是通用的，如果要在这个行业持续深根，那么这些非技术能力是必备的且实用的。本文在原文上进行翻译，并对文中提到部分专业术语进行了解释，以及对指向外部链接的文档内容作了一些简单的概述，希望能帮助到查看此文档的人。</p>
+<p>原文地址：<a href="https://github.com/romenrg/evergreen-skills-developers.git">evergreen-skills-developers</a></p>
+<p>中英双文地址：<a href="https://github.com/VomPom/evergreen-skills-developers/blob/master/README_en_cn.md">[译]evergreen-skills-developers</a></p>
+<h2 id="原文翻译："><a href="#原文翻译：" class="headerlink" title="原文翻译："></a>原文翻译：</h2><p>这个仓库包括了一份“常青技能”清单，这份清单应该可以作为对技术精湛的软件工程师&#x2F;开发者客观评价。</p>
+<p>这份工作的是为了在招聘软件开发者&#x2F;工程师时，提供一个替代的技术面试的方案。文档关注的是软开发最佳实践、跨框架原则和通用的技能；而不是我们在行业中经常看到的语言层面，或者特定技术框架的内容。</p>
+<p>编程语言不断进化，公司也不断改变他们的技术栈，框架很快就会过时，有经验的工程师使用搜索引擎能在几分钟就能解决语法相关的问题。因此，在面试候选人时关注这些方面是否有意义呢？</p>
+<p>另一方面，技术框架以外的原理和非技术的技能是在谷歌上查不到的，这些技能是“常青”的，并且对工程师的表现有巨大的影响。这些更能反映出软件开发者&#x2F;工程师为团队带来的真正价值。</p>
+<p>这个仓库是基于以下文章的一个衍生作品：”<a href="https://www.romenrg.com/blog/2018/12/29/what-makes-a-great-software-engineer">是什么造就了一位伟大的软件工程师</a>“。</p>
+<p>这是一个正在进行中的工作。重要的知识可能缺失，现有的条目可能可以改进，更好的分组策略也可能被发现。因此，任何贡献（即PR或问题）都是受欢迎的。请随时按照<a href="https://gptx.woa.com/CONTRIBUTING.md">贡献指南</a>提出修改建议。</p>
+<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ul>
+<li><p><a href="#%E9%9D%9E%E6%8A%80%E6%9C%AF%E6%8A%80%E8%83%BD">非技术技能</a></p>
+<ul>
+<li><a href="#%E6%A0%B8%E5%BF%83%E6%8A%80%E8%83%BD%EF%BC%88%E5%8F%88%E7%A7%B0%E2%80%9C%E8%BD%AF%E6%8A%80%E8%83%BD%E2%80%9D%EF%BC%89">核心技能</a><ul>
+<li><a href="#%E4%BA%A4%E6%B5%81">交流</a></li>
+<li><a href="#%E5%9B%A2%E9%98%9F">团队</a></li>
+</ul>
+</li>
+<li><a href="#%E5%88%9B%E6%96%B0%E5%92%8C%E8%87%AA%E6%88%91%E7%AE%A1%E7%90%86%E6%8A%80%E8%83%BD">创新和自我管理技能</a><ul>
+<li><a href="#%E5%BC%80%E5%8F%91%E6%B5%81%E7%A8%8B">开发流程</a></li>
+<li><a href="#%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E8%83%BD%E5%8A%9B">问题解决能力</a></li>
+<li><a href="#%E5%BF%83%E6%80%81">心态</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><a href="#%E6%8A%80%E8%83%BD%E8%83%BD%E5%8A%9B">技能能力</a></p>
+<ul>
+<li><a href="#%E9%80%9A%E7%94%A8%E6%8A%80%E6%9C%AF%E8%83%BD%E5%8A%9B">通用技术能力</a></li>
+<li><a href="#%E7%BC%96%E7%A8%8B%E5%87%86%E5%88%99">编程准则</a><ul>
+<li><a href="#%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84">数据结构</a> </li>
+<li><a href="#%E4%BB%A3%E7%A0%81%E6%95%B4%E6%B4%81">代码整洁</a></li>
+<li><a href="#%E6%BA%90%E7%A0%81%E7%AE%A1%E7%90%86">源码管理</a></li>
+<li><a href="#%E6%8A%80%E6%9C%AF%E5%90%88%E4%BD%9C">技术合作</a></li>
+<li><a href="#DevOps%E5%AE%9E%E8%B7%B5">DevOps实践</a></li>
+<li><a href="%E9%80%9A%E7%94%A8%E6%8A%80%E6%9C%AF%E7%9F%A5%E8%AF%86">通用技术知识</a><ul>
+<li><a href="#%E8%AF%AD%E8%A8%80%E7%90%86%E8%AE%BA%E7%9F%A5%E8%AF%86">语言理论知识</a></li>
+<li><a href="#%E4%BC%98%E5%8C%96">优化</a></li>
+<li><a href="#%E5%B9%B6%E5%8F%91">并发</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><a href="#%E7%89%B9%E5%AE%9A%E9%A2%86%E5%9F%9F%E6%8A%80%E6%9C%AF%E7%9F%A5%E8%AF%86">特定领域技术知识</a></p>
+<ul>
+<li><p><a href="#%E5%89%8D%E7%AB%AF%E5%BC%80%E5%8F%91">前端开发</a></p>
+</li>
+<li><p><a href="#%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91">后端开发</a></p>
+</li>
+<li><p><a href="#%E6%9E%B6%E6%9E%84">架构</a></p>
+</li>
+<li><p><a href="#%E5%9F%BA%E7%A1%80%E5%BB%BA%E8%AE%BE">基础建设</a></p>
+</li>
+<li><p><a href="#%E5%AE%89%E5%85%A8">安全</a></p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="非技术技能"><a href="#非技术技能" class="headerlink" title="非技术技能"></a>非技术技能</h2><p>以下非技术能力可能是开发者最重要的能力。尽管一个人可能具备很强的技术能力，但在公司中没有良好的沟通、团队合作态度、开发流程、解决问题的能力和学习的心态的话，一切会变得非常糟糕。</p>
+<h3 id="核心技能（又称“软技能”）"><a href="#核心技能（又称“软技能”）" class="headerlink" title="核心技能（又称“软技能”）"></a>核心技能（又称“软技能”）</h3><h4 id="交流"><a href="#交流" class="headerlink" title="交流"></a>交流</h4><ul>
+<li>遵循邮件使用的最佳策略(例： <a href="https://www.grammarly.com/blog/email-etiquette-rules-to-know/">some e-mail etiquette rules</a>)</li>
+</ul>
+<ul>
+<li><p>遵循沟通的最佳策略 (e.g. <a href="https://slack.com/intl/en-es/help/articles/115000769927-Use-threads-to-organize-discussions-">use threads to organize discussions</a> and <a href="https://blog.rescuetime.com/slack-focus-guide/">other best-practices from Slack</a>)</p>
+<p>两份链接指向的 slack 的一则使用文档和一份 slack 使用技巧文档</p>
+</li>
+<li><p><a href="https://jaxenter.com/aaaand-gone-true-cost-interruptions-128741.html">最小化干扰</a></p>
+<p>链接指向的文章是一篇关于程序员在工作中，因被其他事项而中断程序开发的影响，一般人，在工作过程中断打扰后大约需要23分钟才能恢复到之前的状态，而程序员需要更久，文中强调了工作中断对程序员工作效率和心情的影响，并讨论了有计划和非计划性中断的不同影响。</p>
+</li>
+<li><p>保持礼貌</p>
+</li>
+</ul>
+<h4 id="团队"><a href="#团队" class="headerlink" title="团队"></a>团队</h4><ul>
+<li><p><a href="https://simpleprogrammer.com/empathy-software-developers">练习同理心</a></p>
+</li>
+<li><p>保持谦逊和低调</p>
+</li>
+<li><p>做一个积极倾听的人</p>
+</li>
+<li><p>做一个好的导师</p>
+</li>
+<li><p>知识分享</p>
+</li>
+<li><p>得有见地</p>
+</li>
+</ul>
+<h3 id="创新和自我管理技能"><a href="#创新和自我管理技能" class="headerlink" title="创新和自我管理技能"></a>创新和自我管理技能</h3><h4 id="开发流程"><a href="#开发流程" class="headerlink" title="开发流程"></a>开发流程</h4><ul>
+<li><p>了解<a href="https://agilemanifesto.org/principles.html">《敏捷开发原则》</a></p>
+</li>
+<li><p>适应迭代和增量开发</p>
+</li>
+<li><p>自组织的能力</p>
+<p>指的是个体或系统能够自发地、无需外部强制指挥，根据内部规则和相互作用来组织自身结构和行为的能力。这种能力在多个层面都有体现，包括个人自我管理、团队协作以及更广泛的社会和生态系统</p>
+</li>
+<li><p>避免产生错误的预估（比如：工时预估）</p>
+</li>
+<li><p>关注优先级和业务价值</p>
+</li>
+</ul>
+<h4 id="问题解决能力"><a href="#问题解决能力" class="headerlink" title="问题解决能力"></a>问题解决能力</h4><ul>
+<li><p>使用科学方法(<a href="https://en.wikipedia.org/wiki/Scientific_method">Scientific Method</a>)</p>
+<blockquote>
+<p>科学方法是一种有系统地寻求知识的程序，涉及了以下三个步骤：问题的认知与表述、实验数据的收集、假说的构成与测试。</p>
+</blockquote>
+</li>
+<li><p>检索能力</p>
+</li>
+<li><p>横向思维</p>
+<blockquote>
+<p>横向思维，指使用间接的、具有创造力的、不是一望而知的推理方式来解决问题</p>
+</blockquote>
+</li>
+<li><p>抽象化能力</p>
+</li>
+<li><p>创造力</p>
+</li>
+<li><p><a href="http://en.wikipedia.org/wiki/5_Whys">五问法</a></p>
+<blockquote>
+<p>五问法关键所在就是，鼓励解决问题的人要努力避开主观或自负的假设和逻辑陷阱，从结果着手，沿着因果关系链条，顺藤摸瓜，穿越不同的抽象层面，直至找出原有问题的根本原因。简而言之，就是鼓励解决问题的人要有“打破砂锅问到底”的精神。</p>
+</blockquote>
+</li>
+<li><p>风险管理</p>
+</li>
+</ul>
+<h4 id="心态"><a href="#心态" class="headerlink" title="心态"></a>心态</h4><ul>
+<li><p>不要害怕变化</p>
+</li>
+<li><p>敢于失败</p>
+</li>
+<li><p>终生学习</p>
+</li>
+<li><p><a href="https://en.wikipedia.org/wiki/Critical_thinking">批判性思维</a> （保持理性，质疑决定，“让事实说话”）</p>
+</li>
+</ul>
+<h2 id="技能能力"><a href="#技能能力" class="headerlink" title="技能能力"></a>技能能力</h2><h3 id="通用技术能力"><a href="#通用技术能力" class="headerlink" title="通用技术能力"></a>通用技术能力</h3><p>有一些技术知识是永恒的，对任何软件工程师都有关，尽管他们将要从事的具体领域各不相同。为了深入了解他们的资历并了解他们的工程实践有多扎实，你可以和他们就编程原理、数据结构、清晰的代码、源代码管理、技术协作或者DevOps实践等主题进行交谈。如果这些基础扎实，他们可能能够毫无问题地学习你们特定领域的东西。</p>
+<h4 id="编程准则"><a href="#编程准则" class="headerlink" title="编程准则"></a>编程准则</h4><ul>
+<li><p>基本流程结构和逻辑代数</p>
+</li>
+<li><p>面向对象编程</p>
+</li>
+<li><p><a href="https://en.wikipedia.org/wiki/SOLID">SOLID</a>, <a href="https://en.wikipedia.org/wiki/GRASP_(object-oriented_design)">GRASP</a>面向对象设计</p>
+<blockquote>
+<p><strong>SOLID</strong>（单一功能、开闭原则、里氏替换、接口隔离以及依赖反转）</p>
+</blockquote>
+</li>
+</ul>
+<blockquote>
+<table>
+<thead>
+<tr>
+<th align="center"></th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">S</td>
+<td><a href="https://zh.wikipedia.org/wiki/%E5%8D%95%E4%B8%80%E5%8A%9F%E8%83%BD%E5%8E%9F%E5%88%99">单一功能原则</a></td>
+<td>认为“对象应该仅具有一种单一功能”的概念。</td>
+</tr>
+<tr>
+<td align="center">O</td>
+<td><a href="https://zh.wikipedia.org/wiki/%E5%BC%80%E9%97%AD%E5%8E%9F%E5%88%99">开闭原则</a></td>
+<td>认为“软件应该是对于扩展开放的，但是对于修改封闭的”的概念。</td>
+</tr>
+<tr>
+<td align="center">L</td>
+<td><a href="https://zh.wikipedia.org/wiki/%E9%87%8C%E6%B0%8F%E6%9B%BF%E6%8D%A2%E5%8E%9F%E5%88%99">里氏替换原则</a></td>
+<td>认为“程序中的对象应该是可以在不改变程序正确性的前提下被它的子类所替换的”的概念。参考契约式设计。</td>
+</tr>
+<tr>
+<td align="center">I</td>
+<td><a href="https://zh.wikipedia.org/wiki/%E6%8E%A5%E5%8F%A3%E9%9A%94%E7%A6%BB%E5%8E%9F%E5%88%99">接口隔离原则</a></td>
+<td>认为“多个特定客户端接口要好于一个宽泛用途的接口”的概念。</td>
+</tr>
+<tr>
+<td align="center">D</td>
+<td><a href="https://zh.wikipedia.org/wiki/%E4%BE%9D%E8%B5%96%E5%8F%8D%E8%BD%AC%E5%8E%9F%E5%88%99">依赖反转原则</a></td>
+<td>认为一个方法应该遵从“依赖于抽象而不是一个实例”的概念。 依赖注入是该原则的一种实现方式。</td>
+</tr>
+</tbody></table>
+<p><strong>GRASP</strong>中提到的模式和原则包括有控制器（controller）、创建者（creator）、中介（indirection）、信息专家（information expert）、低耦合性（low coupling）、高内聚性（high cohesion）、多态（polymorphism）、保护变化（protected variations）和纯虚构（pure Fabrication）[2]</p>
+</blockquote>
+<ul>
+<li><p>函数式编程（纯函数、不变性、递归……）</p>
+</li>
+<li><p><a href="http://amzotti.github.io/programming%20paradigms/2015/02/13/what-is-the-difference-between-procedural-function-imperative-and-declarative-programming-paradigms/">声明式与命令式编程</a></p>
+<blockquote>
+<p>声明式和命令式编程范例只不过是描述在不同抽象层次上编码的流行词。声明式编程关注的是“做什么，而不是如何做”，而命令式编程则关注的是“如何做，而不是做什么”。声明式编程是在比命令式编程更高的抽象层次上进行编程。两者都有其适用的地方，例如在网页开发中使用框架时需要声明式编程，而在设计算法和其他底层需求时则需要命令式编程。</p>
+</blockquote>
+</li>
+</ul>
+<h4 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h4><ul>
+<li><p>基本数据结构（基本类型、数组、矩阵、对象…）</p>
+</li>
+<li><p>缓存和 memoization</p>
+<p>memoization 没有一个很好的词能翻译，大概意思就是通过存储函数调用的结果，并在再次使用相同输入调用函数时直接返回已存储的结果，从而加速计算逻辑。斐波那契数列就是一个使用 memoization 的例子</p>
+</li>
+<li><p>Hash codes、 tokens、编码（比如 Base64）</p>
+</li>
+<li><p><a href="https://stackoverflow.com/a/80113/1213497">栈与堆内存</a> </p>
+<p>链接指向一则在 <a href="https://stackoverflow.com/questions/79923/what-and-where-are-the-stack-and-heap/80113#80113">stackoverflow</a>  提出堆栈相关的诸多疑问，最高数回答解释了堆栈两种内存分配方式的基本概念、操作方式和性能差异，其中栈内存分配方式由于其后进先出的特性和近距离的存取模式，使得其在内存分配和回收上更加高效；而堆内存分配方式由于其动态和灵活的特性，对内存的管理相对复杂，但能够满足更多的内存需求</p>
+</li>
+</ul>
+<h4 id="代码整洁"><a href="#代码整洁" class="headerlink" title="代码整洁"></a>代码整洁</h4><ul>
+<li><p>懂得命名对代码的可读性的重要性</p>
+</li>
+<li><p>避免过长的方法和类，确保职责被划分到各个方法或者类中</p>
+</li>
+<li><p>遵循约定来管理项目结构</p>
+</li>
+<li><p>将复杂的布尔条件提取到命名良好的函数中</p>
+</li>
+<li><p>尽量编写尽可能自解释的代码（即通过阅读代码就能容易理解代码的功能）</p>
+</li>
+<li><p>良好的命名和轻量的文档而不是行内注释</p>
+<p><a href="https://www.codeproject.com/Articles/872073/Code-Comments-are-Lies">代码注释通常可能会误导人</a>，因为它们经常被用作一种捷径，用来解释一段混乱的代码块的功能，而不是投入时间去重构它以提高其可读性。</p>
+<p>链接的文章主张编写清晰、自解释和可维护的代码，而不是过度依赖注释，同时也承认在某些特殊情况下，注释是有其必要性和价值的。</p>
+</li>
+<li><p>将文档编写为代码，理想情况下与代码一起，以便于维护（例如，在仓库中的“docs”文件夹中的 markdown 文件）</p>
+</li>
+<li><p>使用文档来描述“为什么”和“怎么做”（例如，目标、用例、组件、高级架构概述等）</p>
+</li>
+<li><p>在面向对象编程中，组合优于继承</p>
+</li>
+<li><p><a href="https://semver.org/">Follow 语义化</a></p>
+</li>
+<li><p>了解TDD及其实践（例如，“红色，绿色，重构”）</p>
+<blockquote>
+<p><strong>TDD</strong>(测试驱动开发)是戴两顶帽子思考的开发方式：先戴上实现功能的帽子，在测试的辅助下，快速实现其功能；再戴上测试驱动开发的帽子，在测试的保护下，通过去除冗余的代码，提高代码品质。测试驱动着整个开发过程：首先，驱动代码的设计和功能的实现；其后，驱动代码的再设计和重构。</p>
+<ul>
+<li><p>红色：首先编写一个针对新功能的测试用例，此时由于功能尚未实现，测试用例将无法通过（失败，显示红色）</p>
+</li>
+<li><p>绿色：接下来编写功能代码，使得测试用例能够通过（成功，显示绿色）。在这个阶段，重点是让测试通过，而不是编写完美的代码。</p>
+</li>
+<li><p>重构：在测试用例通过后，对功能代码进行优化和重构，提高代码质量，同时确保测试用例仍然能够通过。</p>
+</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+<h4 id="源码管理能力"><a href="#源码管理能力" class="headerlink" title="源码管理能力"></a>源码管理能力</h4><ul>
+<li><p>CVS（控制版本系统）&#x2F; SCM（源代码管理）基础知识：分支、标签、集中式与分散式等</p>
+</li>
+<li><p>SCM与仓库管理&#x2F;托管的区别（即<a href="https://stackoverflow.com/a/13321586">Git与GitHub之间的区别</a>）</p>
+</li>
+<li><p>理解版本化的重要性</p>
+</li>
+<li><p>Commit 最佳实践</p>
+<ul>
+<li><p><a href="https://lucasr.org/2011/01/29/micro-commits/">微提交</a> &#x2F;原子提交，良好的描述等</p>
+</li>
+<li><p><a href="https://www.conventionalcommits.org/en/v1.0.0/">常规提交</a></p>
+</li>
+</ul>
+</li>
+<li><p>功能分支（短期）</p>
+</li>
+<li><p>基于主干的开发</p>
+</li>
+<li><p>依赖管理（包管理器的重要性，依赖地狱的风险等）</p>
+</li>
+</ul>
+<h4 id="技术合作"><a href="#技术合作" class="headerlink" title="技术合作"></a>技术合作</h4><ul>
+<li><p><a href="https://blog.github.com/2015-01-21-how-to-write-the-perfect-pull-request/">代码 review 最佳实践</a></p>
+<ul>
+<li>一句话来说就是：在执行代码审查时关注相关部分。目的是学习，而不是指责。</li>
+</ul>
+</li>
+<li><p><a href="https://martinfowler.com/articles/on-pair-programming.html">结对编程</a></p>
+<p>这篇文章主要讨论了结对编程（Pair Programming）的相关主题，包括其风格、时间管理、轮换策略、日常规划、物理环境设置、远程配对等方面。还探讨了结对编程的好处和挑战，以及如何说服管理者和同事采用这种方法。此外，文章还涉及了一些与配对编程相关的细节和常见问题</p>
+</li>
+</ul>
+<h4 id="DevOps-实践"><a href="#DevOps-实践" class="headerlink" title="DevOps 实践"></a>DevOps 实践</h4><ul>
+<li><p>自动化构建</p>
+</li>
+<li><p>构件仓库和镜像注册表</p>
+</li>
+<li><p>编写自动化测试</p>
+</li>
+<li><p>单元、集成和端到端（e2e）测试之间的区别</p>
+</li>
+<li><p>测试金字塔</p>
+</li>
+<li><p>持续集成</p>
+</li>
+<li><p>持续交付与持续部署</p>
+</li>
+<li><p>功能 Flag 和功能开关</p>
+</li>
+</ul>
+<h4 id="通用技术知识"><a href="#通用技术知识" class="headerlink" title="通用技术知识"></a>通用技术知识</h4><h5 id="语言理论知识"><a href="#语言理论知识" class="headerlink" title="语言理论知识"></a>语言理论知识</h5><ul>
+<li><p>正则表达式（regex）</p>
+</li>
+<li><p>编译型与解释型语言</p>
+</li>
+<li><p><a href="https://medium.com/@cpave3/understanding-types-static-vs-dynamic-strong-vs-weak-88a4e1f0ed5f">动态与静态 &amp; 弱类型与强类型语言类型</a></p>
+</li>
+</ul>
+<h5 id="优化"><a href="#优化" class="headerlink" title="优化"></a>优化</h5><ul>
+<li><p>懒加载</p>
+</li>
+<li><p><a href="https://en.wikipedia.org/wiki/Profiling_(computer_programming)">性能分析</a></p>
+</li>
+</ul>
+<h5 id="并发"><a href="#并发" class="headerlink" title="并发"></a>并发</h5><ul>
+<li><p>竞态条件</p>
+</li>
+<li><p>死锁</p>
+</li>
+<li><p>互斥</p>
+</li>
+</ul>
+<h3 id="特定领域技术知识"><a href="#特定领域技术知识" class="headerlink" title="特定领域技术知识"></a>特定领域技术知识</h3><p>在某些情况下，您可能希望工程师已经了解某些特定领域，例如前端、后端、架构、基础设施或安全方面。在这些情况下，还有一些跨框架的概念和原则，可用于推动针对每个领域的特定技术知识的内容。</p>
+<h4 id="前端开发"><a href="#前端开发" class="headerlink" title="前端开发"></a>前端开发</h4><ul>
+<li><p>API通信（不同的架构标准，数据如何传输…）</p>
+</li>
+<li><p>DOM（定义，理解，虚拟DOM…）</p>
+</li>
+<li><p>浏览器事件</p>
+</li>
+<li><p>响应式设计（目的，优点，渐进增强…）</p>
+</li>
+<li><p>客户端渲染（CSR）与服务器端渲染（SSR）</p>
+</li>
+<li><p>分页</p>
+</li>
+<li><p>状态管理（相关问题，无状态方法…）</p>
+</li>
+<li><p>MVC 和相关的衍生品</p>
+</li>
+<li><p>WebSockets 网络通信协议</p>
+</li>
+</ul>
+<h4 id="后端开发"><a href="#后端开发" class="headerlink" title="后端开发"></a>后端开发</h4><ul>
+<li><p>API设计（不同的架构标准，数据如何传输…）</p>
+</li>
+<li><p><a href="https://en.wikipedia.org/wiki/Message_broker">消息代理</a></p>
+</li>
+<li><p>关系型数据库（它们是如何工作的，基本概念…）</p>
+</li>
+<li><p>非关系型数据库</p>
+</li>
+<li><p>数据库设计</p>
+</li>
+<li><p>ORM（对象关系映射）</p>
+</li>
+<li><p>批处理进程 &#x2F; 定时任务</p>
+</li>
+<li><p>会话处理</p>
+</li>
+<li><p><a href="https://lti.umuc.edu/contentadaptor/topics/byid/db0a8c4f-f738-4674-9f60-b75323cdb07f">错误处理、审查、日志记录</a></p>
+</li>
+</ul>
+<h4 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h4><ul>
+<li><p>API</p>
+<ul>
+<li><p>标准协议：REST &#x2F; SOAP </p>
+</li>
+<li><p>安全性（例如拦截机器人，控制账户接管攻击等）</p>
+</li>
+<li><p>针对第三方服务故障的弹性橱窗（例如断路器）</p>
+</li>
+</ul>
+</li>
+<li><p>外部可配置化</p>
+</li>
+<li><p><a href="https://www.romenrg.com/blog/2019/12/31/everything-as-code/">万物皆代码（即配置即代码，基础设施即代码，文档即代码…）</a></p>
+</li>
+<li><p>单体应用与微服务</p>
+</li>
+<li><p>领域驱动设计（DDD）</p>
+</li>
+<li><p>六边形架构</p>
+</li>
+<li><p>服务 Mesh</p>
+</li>
+<li><p>相关的互联网协议及其用法（如 HTTP, HTTPS, TCP, UDP, LDAP, SSH, SMTP…）</p>
+</li>
+<li><p><a href="https://en.wikipedia.org/wiki/Data_modeling">数据建模</a></p>
+</li>
+</ul>
+<h4 id="基础设施"><a href="#基础设施" class="headerlink" title="基础设施"></a>基础设施</h4><ul>
+<li><p>虚拟机与容器</p>
+</li>
+<li><p>进程与线程</p>
+</li>
+<li><p>控制器-代理&#x2F;主副本模式</p>
+</li>
+<li><p>C&#x2F;S模式</p>
+</li>
+<li><p>IAAS, PAAS, SASS</p>
+</li>
+<li><p>Web服务器</p>
+</li>
+<li><p>反向代理</p>
+</li>
+<li><p>负载均衡</p>
+</li>
+<li><p>冗余</p>
+</li>
+<li><p>延迟</p>
+</li>
+<li><p>监控</p>
+</li>
+<li><p><a href="https://docs.honeycomb.io/learning-about-observability/intro-to-observability/">可监控性</a></p>
+</li>
+</ul>
+<h4 id="安全"><a href="#安全" class="headerlink" title="安全"></a>安全</h4><ul>
+<li><p>身份和访问管理（IAM）</p>
+<ul>
+<li><p>认证（JWT, SSO）</p>
+</li>
+<li><p>授权（RBAC, ABAC）</p>
+</li>
+</ul>
+</li>
+<li><p>公钥密码系统（例如RSA）</p>
+</li>
+<li><p>加密协议（TLS, SSL）</p>
+</li>
+<li><p>最小权限原则</p>
+</li>
+<li><p>DoS &#x2F; DDoS</p>
+</li>
+<li><p>SQL 注入</p>
+</li>
+<li><p>中间人攻击</p>
+</li>
+<li><p>XSS（跨站脚本攻击） 和 CSRF（跨站请求伪造）</p>
+</li>
+</ul>
+</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css?v=1.0.0"><script type="text/javascript" src="/js/donate.js?v=1.0.0" successtext="复制成功！"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" target="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="https://cdn.julis.wang/blog/img/ali_pay.jpeg"></li><li id="WeChat" qr="https://cdn.julis.wang/blog/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"></div><div class="post-nav"><a class="pre" href="/2024/08/25/%E9%97%AE%E9%A2%98%E8%AE%B0%E5%BD%95-Hexo-TypeError-isDate-is-not-a-function/">[问题记录]Hexo TypeError: isDate is not a function</a><a class="next" href="/2024/04/11/%E5%85%B3%E4%BA%8EWindows%E4%B8%AD%E6%96%87%E5%AD%97%E7%AC%A6%E4%B9%B1%E7%A0%81/">UTF-8字符编码相关</a></div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:admin@domain.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">38</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/%E8%A7%86%E9%A2%91/" style="font-size: 15px;">视频</a> <a href="/tags/flutter/" style="font-size: 15px;">flutter</a> <a href="/tags/mac/" style="font-size: 15px;">mac</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/">手写一个精简版Koin：深入理解依赖注入核心原理</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/">[Compose Multiplatform]跨平台博客应用实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/05/16/%E9%B8%BF%E8%92%99-%E5%86%99%E4%BA%86%E4%B8%AA%E5%9F%BA%E4%BA%8EHexo%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%B8%BF%E8%92%99App/">[鸿蒙]写了个基于Hexo博客的鸿蒙App</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/">KV-存储之mmkv</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/17/Learn-from-RetroFit/">RetroFit2 源码学习相关</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/02/24/Android%E5%B1%8F%E5%B9%95%E5%88%B7%E6%96%B0%E6%9C%BA%E5%88%B6/">Android屏幕刷新机制</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/11/10/%E5%85%B3%E4%BA%8E-pthread-key-t-%E5%AF%BC%E8%87%B4%E7%9A%84-Android-Crash-%E7%9A%84%E6%8E%A2%E7%B4%A2/">关于 pthread_key_t 导致的 Android Crash 的探索</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/08/25/%E9%97%AE%E9%A2%98%E8%AE%B0%E5%BD%95-Hexo-TypeError-isDate-is-not-a-function/">[问题记录]Hexo TypeError: isDate is not a function</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/07/09/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91%E4%BA%BA%E5%91%98%E7%9A%84%E5%B8%B8%E9%9D%92%E6%8A%80%E8%83%BD/">[译]软件开发人员的常青技能</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/04/11/%E5%85%B3%E4%BA%8EWindows%E4%B8%AD%E6%96%87%E5%AD%97%E7%AC%A6%E4%B9%B1%E7%A0%81/">UTF-8字符编码相关</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a><ul></ul><a href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank">豆瓣</a><ul></ul><a href="mailto:1607637473@qq.com" title="邮箱" target="_blank">邮箱</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2025 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+if (search_path.length == 0) {
+  search_path = 'search.xml';
+}
+var path = '/' + search_path;
+searchFunc(path, 'local-search-input', 'local-search-result');
+</script><script type="text/javascript" src="/js/copycode.js?v=1.0.0" successtext="复制成功！"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css?v=1.0.0"><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script></div></body></html>

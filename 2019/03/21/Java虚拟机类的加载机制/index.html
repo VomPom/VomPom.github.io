@@ -1,0 +1,109 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="落叶挽歌"><title>Java虚拟机类的加载机制 | 落叶挽歌</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="https://unpkg.com/normalize.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/pure-min.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="https://unpkg.com/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?' + 'a642bfb7c75afbc4fe68fd942180298b';
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+  })();</script><script type="text/javascript" src="https://unpkg.com/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="https://unpkg.com/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="https://unpkg.com/toastr/build/toastr.min.css"><div class="darkmode-toggle">🌓</div><script>var prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+var toggle = document.querySelector('.darkmode-toggle');
+var html = document.querySelector('html');
+
+html.dataset.dark = localStorage.dark || prefersDarkMode.matches;
+
+toggle.addEventListener('click', () => {
+localStorage.dark = !(html.dataset.dark == 'true');
+html.dataset.dark = localStorage.dark;
+});</script><meta name="generator" content="Hexo 7.3.0"><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">Java虚拟机类的加载机制</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">Java虚拟机类的加载机制</h1><div class="post-meta">2019年03月21日<span> | </span><span class="category"><a href="/categories/technology/">技术文章</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 1.8k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 6</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><p><strong>什么是虚拟机类的加载机制？</strong></p>
+<blockquote>
+<p>虚拟机把描述类的数据从class文件加载到内存，并对数据进行校验，转换，解析和初始化，最终形成可以被虚拟机直接使用的Java类型，这就是虚拟机的类加载机制。</p>
+</blockquote>
+<p>类从加载到虚拟机的内存中开始，直到卸载出内存为止，整个生命周期为：</p>
+<ul>
+<li><p>加载（loading）</p>
+</li>
+<li><p>验证（verification）</p>
+</li>
+<li><p>准备(preparation)</p>
+</li>
+<li><p>解析(resolution)</p>
+</li>
+<li><p>初始化(initialization)</p>
+</li>
+<li><p>使用(using)</p>
+</li>
+<li><p>卸载（unloading）</p>
+</li>
+</ul>
+<p>其中 验证、准备、解析部分统称为连接</p>
+<img src="https://cdn.julis.wang/blog/img/6870166cdec78b95356d73621e32757829b.jpg">
+<p>接下来依次讲解，各个步骤所做的事</p>
+<h2 id="第一部分-加载"><a href="#第一部分-加载" class="headerlink" title="第一部分 加载"></a><strong>第一部分 加载</strong></h2><hr>
+<p>“加载”是“类加载”的一个阶段，注意区分概念。类的加载由<strong>类加载器</strong>（后面介绍）加载主要完成三件事情：</p>
+<p><strong>1、通过一个类的全限定名来获取其定义的二进制字节流。</strong></p>
+<p><strong>2、将这个字节流所代表的静态存储结构转化为方法区的运行时数据结构。</strong></p>
+<p><strong>3、在Java堆中生成一个代表这个类的java.lang.Class对象，作为对方法区中这些数据的访问入口。</strong></p>
+<blockquote>
+<p>加载阶段完成后，虚拟机外部的二进制字节流将按照虚拟机所需的格式存储在方法区中，同时在内存中实例化一个java.lang.Class的实例对象。相对于HotSpot，这个实例对象比较特殊，虽然是一个对象，但并没有放置在堆中，而是放置在方法区中。这个对象将作为程序访问方法区中这些类数据的外部接口。</p>
+</blockquote>
+<h2 id="第二部分-验证"><a href="#第二部分-验证" class="headerlink" title="第二部分 验证"></a><strong>第二部分 验证</strong></h2><hr>
+<p>这一步主要是确保Class文件的字节流符合虚拟机的规范</p>
+<p>主要验证以下几个部分：</p>
+<p><strong>1、文件格式验证</strong><br>验证是否以魔数开头、主次版本号是否在当前虚拟机处理范围内…</p>
+<p>这一验证阶段主要是保证输入的字节流能正确地解析并存储与方法区内，格式上符合Java类型信息的要求。只有通过这个阶段，字节流才会进入内存的方法区中存储，后面的三个验证方式也都是给予方法区中的数据验证，不再会操作字节流。</p>
+<p><strong>2、元数据验证</strong>  验证这个类是否有父类、这个类是否继承了不允许继承的类…</p>
+<p>该阶段主要对类的元数据进行语义校验，保证符合java语言规范的元数据信息。</p>
+<p><strong>3、字节码验证</strong></p>
+<p>最复杂的一个阶段，主要目的是通过数据流和控制流分析，确定程序语义是否合法、符合逻辑。</p>
+<p><strong>4、符号引用验证</strong> </p>
+<p>这个阶段的校验发生在虚拟机将符号引用转化为直接引用的时候，这个转化动作发生在连接的解析阶段。目的是确保解析动作正常执行，如果无法通过验证，将抛出 IllegalAccessError、NoSuchFieldError、NoSuchMethodError等异常。</p>
+<h2 id="第三部分-准备"><a href="#第三部分-准备" class="headerlink" title="第三部分 准备"></a><strong>第三部分 准备</strong></h2><hr>
+<p>准备阶段是正式为类变量分配内存并设置<strong>类变量初始值</strong>的阶段，这些变量所实用的内存将在<strong>方法区</strong>中进行分配。</p>
+<p><strong>这时候的分配仅仅是类变量(staic修饰的变量)，而实例变量将会在对象实例化时随对象一起分配在Java对中。</strong></p>
+<p>假设一个类变量为：public static int count &#x3D; 10;这时候会分配0，而不是10，分配10是在程序编译后。</p>
+<h2 id="第四部分-解析"><a href="#第四部分-解析" class="headerlink" title="第四部分 解析"></a><strong>第四部分 解析</strong></h2><hr>
+<p>解析阶段是虚拟机将常量池的符号引用替换为直接引用的阶段</p>
+<p><strong>1、类或者接口的的解析</strong></p>
+<p><strong>2、字段解析</strong></p>
+<p><strong>3、类方法解析</strong></p>
+<p><strong>4、接口方法解析</strong></p>
+<blockquote>
+<p><strong>符号引用</strong>与虚拟机实现的布局无关，引用的目标并不一定要已经加载到内存中。各种虚拟机实现的内存布局可以各不相同，但是它们能接受的符号引用必须是一致的，因为符号引用的字面量形式明确定义在Java虚拟机规范的Class文件格式中。</p>
+</blockquote>
+<blockquote>
+<p><strong>直接引用</strong>可以是指向目标的指针，相对偏移量或是一个能间接定位到目标的句柄。如果有了直接引用，那引用的目标必定已经在内存中存在。</p>
+</blockquote>
+<h2 id="第五部分-初始化"><a href="#第五部分-初始化" class="headerlink" title="第五部分 初始化"></a><strong>第五部分 初始化</strong></h2><hr>
+<p>在准备阶段，变量已经被分配赋值过初始值，在初始化阶段根据代码的逻辑初始化真实的变量和其他资源。</p>
+<h2 id="关于类加载器"><a href="#关于类加载器" class="headerlink" title="关于类加载器"></a><strong>关于类加载器</strong></h2><hr>
+<p><strong>什么是类加载器？</strong></p>
+<p>在“加载”阶段中，通过一个类的全限定名来获取其定义的二进制字节流。这一动作是放到了Java虚拟机外部去实现的，是为了方便让应用自己去决定如何获取所需要的类，实现这个动作的功能是常说的“类加载器（ClassLoader）”</p>
+<p>类加载器主要有三种：</p>
+<p><strong>1.启动类加载器(Bootstrap ClassLoader)</strong></p>
+<pre><code>负责加载&lt;JAVA_HOME&gt;\lib
+</code></pre>
+<p><strong>2.扩展类加载器(Exension ClassLoader)</strong></p>
+<pre><code>负责加载&lt;JAVA_HOME&gt;\lib\ext
+</code></pre>
+<p><strong>3.应用程序类加载器(Applicaion ClassLoader)</strong></p>
+<pre><code>负责加载ClassPath上指定的类库
+</code></pre>
+<p><strong>类加载器工作原理</strong></p>
+<p>介绍类加载器原理之前，必须得了解<strong>双亲委派模型</strong>(Parents Delegation Model)</p>
+<blockquote>
+<p>双亲委派模式的工作原理的是：如果一个类加载器收到了类加载请求，它并不会自己先去加载，而是把这个请求委托给父类的加载器去执行，如果父类加载器还存在其父类加载器，则进一步向上委托，依次递归，请求最终将到达顶层的启动类加载器，如果父类加载器可以完成类加载任务，就成功返回，倘若父类加载器无法完成此加载任务，子加载器才会尝试自己去加载。</p>
+</blockquote>
+<img src="https://cdn.julis.wang/blog/img/853820dea41988382e4e0872063ec33315e.jpg">
+
+<p>如图所示，这种层次结构关系被称为<strong>双亲委派模型</strong><br>以下为其实现代码，集中在java.lang.ClassLoader中的loadClass()方法中</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">protected</span> Class&lt;?&gt; loadClass(String name, <span class="type">boolean</span> resolve)</span><br><span class="line">      <span class="keyword">throws</span> ClassNotFoundException</span><br><span class="line">  	&#123;</span><br><span class="line">      <span class="keyword">synchronized</span> (getClassLoadingLock(name)) &#123;</span><br><span class="line">          <span class="comment">// First, check if the class has already been loaded</span></span><br><span class="line"><span class="comment">//首先检查类是否被加载</span></span><br><span class="line">          Class&lt;?&gt; c = findLoadedClass(name);</span><br><span class="line">          <span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;</span><br><span class="line">              <span class="type">long</span> <span class="variable">t0</span> <span class="operator">=</span> System.nanoTime();</span><br><span class="line">              <span class="keyword">try</span> &#123;</span><br><span class="line">                  <span class="keyword">if</span> (parent != <span class="literal">null</span>) &#123;</span><br><span class="line">	<span class="comment">//如果有父加载器，则先委托父加载，否则由启动类加载器加载，如果启动类加载器没有找到，则返回null</span></span><br><span class="line">                      c = parent.loadClass(name, <span class="literal">false</span>);</span><br><span class="line">                  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                      c = findBootstrapClassOrNull(name);</span><br><span class="line">                  &#125;</span><br><span class="line">              &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">                  <span class="comment">// ClassNotFoundException thrown if class not found</span></span><br><span class="line">                  <span class="comment">// from the non-null parent class loader</span></span><br><span class="line">	<span class="comment">//这里的ClassNotFoundException来自父加载器</span></span><br><span class="line">              &#125;</span><br><span class="line">              <span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;</span><br><span class="line">                  <span class="comment">// If still not found, then invoke findClass in order</span></span><br><span class="line">                  <span class="comment">// to find the class.</span></span><br><span class="line">	<span class="comment">//在父类Classloader还没办法加载的时候</span></span><br><span class="line">	<span class="comment">//再调用本身的findclass方法来加载类</span></span><br><span class="line">                  <span class="type">long</span> <span class="variable">t1</span> <span class="operator">=</span> System.nanoTime();</span><br><span class="line">                  c = findClass(name);</span><br><span class="line">              &#125;</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">              resolveClass(c);</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">return</span> c;</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>代码的逻辑很清楚：</p>
+<blockquote>
+<p><strong>先加载类是否已经被加载过，若没有则调用父的loadClass()方法，如果父 类加载器为空，则使用启动类加载器作为父加载器，如果父 类加载器加载失败，再调用自己的findClass()方法进行加载</strong></p>
+</blockquote>
+</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css?v=1.0.0"><script type="text/javascript" src="/js/donate.js?v=1.0.0" successtext="复制成功！"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" target="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="https://cdn.julis.wang/blog/img/ali_pay.jpeg"></li><li id="WeChat" qr="https://cdn.julis.wang/blog/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/" rel="tag">Java</a></li></ul></div><div class="post-nav"><a class="pre" href="/2019/04/13/%E5%85%B3%E4%BA%8E%E4%BD%8D%E8%BF%90%E7%AE%97%E5%92%8CHashMap%E4%B8%AD%E4%B8%80%E4%B8%AA%E6%B1%82%E6%9C%80%E5%B0%8F2%E6%AC%A1%E5%B9%82%E7%9A%84%E7%AE%97%E6%B3%95/">关于位运算和HashMap中一个求最小2次幂的算法</a><a class="next" href="/2019/03/18/Android%E4%B8%ADHandler%E4%BD%BF%E7%94%A8%E5%AF%BC%E8%87%B4%E7%9A%84%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/"> Android中Handler使用导致的内存泄漏</a></div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:admin@domain.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">38</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/%E8%A7%86%E9%A2%91/" style="font-size: 15px;">视频</a> <a href="/tags/flutter/" style="font-size: 15px;">flutter</a> <a href="/tags/mac/" style="font-size: 15px;">mac</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/">手写一个精简版Koin：深入理解依赖注入核心原理</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/">[Compose Multiplatform]跨平台博客应用实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/05/16/%E9%B8%BF%E8%92%99-%E5%86%99%E4%BA%86%E4%B8%AA%E5%9F%BA%E4%BA%8EHexo%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%B8%BF%E8%92%99App/">[鸿蒙]写了个基于Hexo博客的鸿蒙App</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/">KV-存储之mmkv</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/17/Learn-from-RetroFit/">RetroFit2 源码学习相关</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/02/24/Android%E5%B1%8F%E5%B9%95%E5%88%B7%E6%96%B0%E6%9C%BA%E5%88%B6/">Android屏幕刷新机制</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/11/10/%E5%85%B3%E4%BA%8E-pthread-key-t-%E5%AF%BC%E8%87%B4%E7%9A%84-Android-Crash-%E7%9A%84%E6%8E%A2%E7%B4%A2/">关于 pthread_key_t 导致的 Android Crash 的探索</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/08/25/%E9%97%AE%E9%A2%98%E8%AE%B0%E5%BD%95-Hexo-TypeError-isDate-is-not-a-function/">[问题记录]Hexo TypeError: isDate is not a function</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/07/09/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91%E4%BA%BA%E5%91%98%E7%9A%84%E5%B8%B8%E9%9D%92%E6%8A%80%E8%83%BD/">[译]软件开发人员的常青技能</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/04/11/%E5%85%B3%E4%BA%8EWindows%E4%B8%AD%E6%96%87%E5%AD%97%E7%AC%A6%E4%B9%B1%E7%A0%81/">UTF-8字符编码相关</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a><ul></ul><a href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank">豆瓣</a><ul></ul><a href="mailto:1607637473@qq.com" title="邮箱" target="_blank">邮箱</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2025 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+if (search_path.length == 0) {
+  search_path = 'search.xml';
+}
+var path = '/' + search_path;
+searchFunc(path, 'local-search-input', 'local-search-result');
+</script><script type="text/javascript" src="/js/copycode.js?v=1.0.0" successtext="复制成功！"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css?v=1.0.0"><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script></div></body></html>

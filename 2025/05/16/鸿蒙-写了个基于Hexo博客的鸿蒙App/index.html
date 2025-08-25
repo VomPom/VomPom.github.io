@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="落叶挽歌"><title>[鸿蒙]写了个基于Hexo博客的鸿蒙App | 落叶挽歌</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="https://unpkg.com/normalize.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/pure-min.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="https://unpkg.com/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?' + 'a642bfb7c75afbc4fe68fd942180298b';
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+  })();</script><script type="text/javascript" src="https://unpkg.com/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="https://unpkg.com/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="https://unpkg.com/toastr/build/toastr.min.css"><div class="darkmode-toggle">🌓</div><script>var prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+var toggle = document.querySelector('.darkmode-toggle');
+var html = document.querySelector('html');
+
+html.dataset.dark = localStorage.dark || prefersDarkMode.matches;
+
+toggle.addEventListener('click', () => {
+localStorage.dark = !(html.dataset.dark == 'true');
+html.dataset.dark = localStorage.dark;
+});</script><meta name="generator" content="Hexo 7.3.0"><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">[鸿蒙]写了个基于Hexo博客的鸿蒙App</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">[鸿蒙]写了个基于Hexo博客的鸿蒙App</h1><div class="post-meta">2025年05月16日<span> | </span><span class="category"><a href="/categories/thinking/">思考总结</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 2.3k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 8</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><p>最近部门也在跟进<a href="https://www.harmonyos.com/">鸿蒙</a>平台的业务开发，自己主要是做 Android 开发，主要使用 Kotlin&#x2F;Java 语言。，需要对新的开发平台和开发模式进行学习，在业余时间开了个项目练手，做了个基于 Hexo 博客内容开发的App。鸿蒙主要使用<a href="https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts">ArkTS语言</a>和<a href="https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkui">ArkUI框架</a>进行开发，有使用 <a href="https://developer.android.com/compose">Jetpack Compose</a> 和 JavaScript&#x2F;TypeScript 的开发经验的话，上手会比较的轻松。本文主要介绍做的App功能以及对鸿蒙开发的一个总结。</p>
+<h2 id="App-简介"><a href="#App-简介" class="headerlink" title="App 简介"></a>App 简介</h2><p>后台数据来自 <a href="https://hexo.io/">Hexo</a> 生成的博客文章，利用 <a href="https://github.com/ryanuo/hexo-generator-wxapi">hexo-generator-wxapi</a> 生成 api .json 文件，再利用 <a href="https://www.qiniu.com/">七牛云</a> 提供对图片和 .json 文件 CDN。</p>
+<p>实现的功能</p>
+<ul>
+<li>博客列表分页加载</li>
+<li>文章详情加载</li>
+<li>文章按分类&#x2F;标签展示</li>
+<li>文章内容统计</li>
+<li>深色&#x2F;浅色模式切换</li>
+<li>数据本地缓存</li>
+</ul>
+<h3 id="功能预览"><a href="#功能预览" class="headerlink" title="功能预览"></a>功能预览</h3><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><img src="https://cdn.julis.wang/github/blog_harmony/light_blog_list.jpeg"  alt="博客列表" /></td>
+<td><img src="https://cdn.julis.wang/github/blog_harmony/light_stats.jpeg"  alt="统计" /></td>
+<td><img src="https://cdn.julis.wang/github/blog_harmony/light_mine.jpeg" alt="个人" /></td>
+<td><img src="https://cdn.julis.wang/github/blog_harmony/light_detail.jpeg"  alt="文章详情" /></td>
+<td><img src="https://cdn.julis.wang/github/blog_harmony/light_category.jpeg"  alt="分类" /></td>
+<td><img src="https://cdn.julis.wang/github/blog_harmony/light_tag.jpeg"  alt="标签" /></td>
+</tr>
+</tbody></table>
+<h3 id="依赖项"><a href="#依赖项" class="headerlink" title="依赖项"></a>依赖项</h3><h4 id="Hexo"><a href="#Hexo" class="headerlink" title="Hexo"></a>Hexo</h4><ul>
+<li><a href="https://hexo.io/">Hexo</a> 快速、简洁且高效的博客框架</li>
+<li><a href="https://github.com/ryanuo/hexo-generator-wxapi">hexo-generator-wxapi</a> 用于将 Hexo 博客内容生成 api 风格的.json文件</li>
+<li><a href="https://www.qiniu.com/">七牛云</a> 提供对图片和.json文件 CDN加速</li>
+</ul>
+<h4 id="HarmonyOS"><a href="#HarmonyOS" class="headerlink" title="HarmonyOS"></a>HarmonyOS</h4><ul>
+<li><a href="https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts">ArkTS</a> ArkTS在TypeScript（简称TS）生态基础上做了进一步扩展，保持了TS的基本风格，同时通过规范定义强化开发期静态检查和分析，提升代码健壮性，并实现更好的程序执行稳定性和性能。</li>
+<li><a href="https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkui">ArkUI</a>  ArkUI（方舟UI框架）为应用的UI开发提供了完整的基础设施，包括简洁的UI语法、丰富的UI功能（组件、布局、动画以及交互事件），以及实时界面预览工具等，可以支持开发者进行可视化界面开发。</li>
+<li><a href="https://gitee.com/openharmony-sig/ohos_pull_to_refresh">ohos_pull_to_refresh</a> 列表加载&#x2F;刷新控件(没有’No more’的状态)</li>
+<li><a href="https://github.com/Tencent/MMKV">MMKV</a> 是基于 mmap 内存映射的 key-value 组件</li>
+</ul>
+<h2 id="鸿蒙开发总结"><a href="#鸿蒙开发总结" class="headerlink" title="鸿蒙开发总结"></a>鸿蒙开发总结</h2><h3 id="ArkTs-语言"><a href="#ArkTs-语言" class="headerlink" title="ArkTs 语言"></a>ArkTs 语言</h3><p>ArkTS 是 TypeScript 的超集，TypeScript 又是 JavaScript 的超集，所以对于基本数据类型使用的是 TypeScript 语法。他们三者的关系如下图所示：</p>
+  <img src="https://alliance-communityfile-drcn.dbankcdn.com/FileServer/getFile/cmtybbs/713/408/959/0030086000713408959.20241009110308.85777546121432927171131630988896:50001231000000:2800:D599CEDEC4315A859E47A08CEC5D4D3E334431F82ABC9FD0E9B6AD0F91CD2FF5.png" width="80%" alt="ArkTS与TypeScript的关系" />
+
+<p>相关的差异可以参考社区话题讨论 <a href="https://developer.huawei.com/consumer/cn/forum/topic/0203163854317501934">ArkTS与Typescript的区别？
+</a></p>
+<p>这里主要记录一下自己使用过程中踩过的坑：</p>
+<h4 id="基本语言类型"><a href="#基本语言类型" class="headerlink" title="基本语言类型"></a>基本语言类型</h4><p>Number 和 number 是两个不同的类型，Number 是 JavaScript 中的一个全局对象，可以使用 new Number() 来创建一个 Number 对象。同理对于 String 和 string，Boolean 和 boolean 也是一样的，大写开头的是<strong>包装对象类型</strong>，小写的是<strong>原始类型</strong>，这点Java&#x2F;kotlin也有类似的包装对象比较好理解，但 Object 居然也有大小写之区分相比难理解点，写代码的时候好几次忽略了这个事，<strong>Object</strong> 是所有对象的基类，object 表示非原始类型（即不是 number、string、boolean、symbol、null 或 undefined 的所有类型）。可以是任何对象、数组、函数、类实例等。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">let obj: object;</span><br><span class="line">obj = &#123; a: 1 &#125;;         // ✅ 正确：普通对象</span><br><span class="line">obj = [1, 2, 3];        // ✅ 正确：数组</span><br><span class="line">obj = () =&gt; &#123;&#125;;         // ✅ 正确：函数</span><br><span class="line">obj = new Date();       // ✅ 正确：类实例</span><br><span class="line"></span><br><span class="line">obj = 42;               // ❌ 错误：原始类型 number</span><br><span class="line">obj = &quot;hello&quot;;          // ❌ 错误：原始类型 string</span><br></pre></td></tr></table></figure>
+<p>两则的区别</p>
+<table>
+<thead>
+<tr>
+<th align="left">特性</th>
+<th align="left">object</th>
+<th align="left">Object</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>允许的值</strong></td>
+<td align="left">仅非原始类型（对象、数组等）</td>
+<td align="left">任意类型（包括原始值）</td>
+</tr>
+<tr>
+<td align="left"><strong>原始值处理</strong></td>
+<td align="left">禁止</td>
+<td align="left">自动装箱（如 42 → Number）</td>
+</tr>
+<tr>
+<td align="left"><strong>使用场景</strong></td>
+<td align="left">明确限制为非原始类型时</td>
+<td align="left">极少使用（通常用 unknown 或具体类型替代）</td>
+</tr>
+</tbody></table>
+<h4 id="Map-等集合类当作普通-JavaScript-对象来操作"><a href="#Map-等集合类当作普通-JavaScript-对象来操作" class="headerlink" title="Map 等集合类当作普通 JavaScript 对象来操作"></a>Map 等集合类当作普通 JavaScript 对象来操作</h4><figure class="highlight ts"><table><tr><td class="code"><pre><span class="line"><span class="keyword">let</span> map = <span class="keyword">new</span> <span class="title class_">Map</span>&lt;<span class="built_in">string</span>, <span class="built_in">object</span>&gt;();</span><br><span class="line">map[<span class="string">&quot;key&quot;</span>] = value;            <span class="comment">// ❌ 错误用法！</span></span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(map.<span class="title function_">get</span>(<span class="string">&quot;biz&quot;</span>));   <span class="comment">// ❌ 输出 undefined</span></span><br></pre></td></tr></table></figure>
+<p>最开始挺奇怪的 map 明明设置了值，但是对应的 map size 为0，遍历 map 也没有数据。后来才发现是这种方式 不会 触发 Map 的内部机制，而是绕过了 Map 的方法，直接操作对象的属性，赋值后，键值对 不会 被存入 Map 的真实存储中，而是作为对象的普通属性存在。正确的用法是：</p>
+<figure class="highlight ts"><table><tr><td class="code"><pre><span class="line"><span class="keyword">let</span> map = <span class="keyword">new</span> <span class="title class_">Map</span>&lt;<span class="built_in">string</span>, <span class="built_in">object</span>&gt;();</span><br><span class="line">map.<span class="property">set</span>[<span class="string">&quot;key&quot;</span>] = value;        <span class="comment">//  ✅ 正确用法！</span></span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(map.<span class="title function_">get</span>(<span class="string">&quot;biz&quot;</span>));   <span class="comment">//  ✅ 输出 value</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="struct-的困扰"><a href="#struct-的困扰" class="headerlink" title="struct 的困扰"></a>struct 的困扰</h4><p>在 js 里面是没有 <code>struct</code> 这个关键词的，从刚接触到现在它唯一的作用就是：和 <code>@Component</code>绑定声明一个UI控件。例如：</p>
+<figure class="highlight ts"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">export</span> struct <span class="title class_">ToolBar</span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+<p><code>@Component</code> 和 <code>struct</code> 两则缺一不可，既然必须有 <code>@Component</code>来标注这是一个UI控件，为什么不能下面这样呢？能省掉一个关键字。</p>
+<figure class="highlight ts"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">class</span> <span class="title class_">ToolBar</span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+<p>同样困扰的人还有很多，这里有一份讨论<a href="https://developer.huawei.com/consumer/cn/forum/topic/0204135301248599134">定义组件时的stuct关键字是什么？</a><br>官方也有一份聊胜于无的介绍</p>
+<blockquote>
+<p>struct和class的区别是什么? </p>
+<p>struct只在自定义组件中使用，@Component装饰的struct就是自定义组件，自定义组件和class是两个概念，自定义组件没有类型，也不能等同于class。如果开发者需要使用组件作为参数在组件之间传递，可以使用自定义占位节点。</p>
+</blockquote>
+<p>我猜测这样是为了省掉对<code>@Component</code>装饰器编译的工作量，如果使用 class 声明，那么声明的UI控件就有“面向对象”的能力，实际上只希望它是一个UI控件声明，不需要它有其他的能力。难道不能对 <code>@Component</code> 装饰过的对象收回“面向对象”的能力么？当然能啊，估计要做很多编译检查的事儿。另外，从开发理解的层面上来讲，它确实也已经不是”对象”了，它只是一个干巴巴的一个UI结构，所以干脆就搞了一个新的关键词 struct。</p>
+<h3 id="ArkUI-框架"><a href="#ArkUI-框架" class="headerlink" title="ArkUI 框架"></a>ArkUI 框架</h3><p>整体框架使用的方式和 <a href="https://developer.android.com/compose">Jetpack Compose</a> 类似，都是声明式UI框架。compose 里面使用  <code>@Composable</code>来标记某个方法这个方法便成了<code>UI控件</code>，控件里面的状态管理使用 <code>remember</code>+ <code>mutableState</code>来控制。而 ArkUI 通过 @State、@Link、@Prop 等装饰器来控制。了解了这些个装饰器的用法，基本上就能理解 ArkUI 的开发流程了。</p>
+<h4 id="构建-UI-的-Component-Builder"><a href="#构建-UI-的-Component-Builder" class="headerlink" title="构建 UI 的 @Component @Builder"></a>构建 UI 的 @Component @Builder</h4><p>@Component 和 @Builder 组合起来实现的差不多就是 Compose 里面使用  <code>@Composable</code> 装饰某个方法的作用，用于构建 UI 或可复用的逻辑单元。<br><strong>@Component</strong><br>用于创建一个自定义组件，组件可以包含独立的 UI 结构、状态管理和生命周期。</p>
+<p><strong>@Builder</strong><br>定义可复用的 UI 片段，用于创建一个UI 构建函数，封装一段可复用的 UI 代码块。不是独立组件，而是嵌入到其他组件或布局中执行，主要作用是复用和逻辑隔离，例如：关于页面，里面的文本是差不多的样式，只是内容不一样，那么只需要保留一个 text 属性出来接收参数。或者某块UI比较复杂，可以抽离一部分UI成为一个独立的UI逻辑模块。</p>
+<h3 id="构建-UI-的状态控制装饰器"><a href="#构建-UI-的状态控制装饰器" class="headerlink" title="构建 UI 的状态控制装饰器"></a>构建 UI 的状态控制装饰器</h3><p><strong>@State</strong><br>比较常用的装饰器，和 Compose 里面 remember+mutableStateOf 的作用差不多，对应的值改变之后，对相关的使用到该属性UI的地方进行刷新。</p>
+<p><strong>@Prop</strong><br>@Prop 装饰的变量和父组件建立单向的同步关系，@Prop变量允许在本地修改，但修改后的变化不会同步回父组件。</p>
+<p>也就是在某个 @Component 的组件内有一个 @State 装饰的属性，传递到子 @Component 组件 @Prop 修饰的属性。子控件对这个属性修改之后，父控件不会对这个改变感知，父控件UI不会改变。</p>
+<p><strong>@Link</strong><br>子组件中被@Link装饰的变量与其父组件中对应的数据源建立双向数据绑定。<br>跟 @Prop 的作用类似，不过是双向的，子控件对这个属性修改之后，父控件会感知这个变化，父控件UI会随着这个属性改变而改变。</p>
+<p><strong>@BuilderParam</strong><br>主要用于动态注入 UI 构建逻辑（即 @Builder 函数），实现父组件向子组件传递可定制的 UI 片段，也就是向子控件传递 UI 参数。</p>
+<p>基本上比较常用到的就这些，还有很多例如：@LocalBuilder @StorageLink @Styles等，都是为了解决开发过过程中遇到的问题，但是只要掌握了 ArkUI UI组件的声明周期和状态管理的基本原理理解其他装饰器还是比较简单的。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>总体开发体验下来，鸿蒙开发学习成本并不是特别高，比较快能上手，但设计的 api 更像一个缝合怪，且使用上不太收敛。很多库还需要再建设，例如音视频开发对应的支持库还不是特别成熟。不过，作为一个从头搞的生态来说能实现成这样已经很不错了，就像此前武磊登陆西甲，以及目前被看好的青年新星王钰栋，都是”自己的孩子”，需要迈出第一步。现在，很多公司也在适配鸿蒙了，期待未来能从 Android 跟 iOS 的生态中争夺出一片大市场。</p>
+<p>项目源码：<a href="https://github.com/VomPom/blog_harmony">https://github.com/VomPom/blog_harmony</a></p>
+</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css?v=1.0.0"><script type="text/javascript" src="/js/donate.js?v=1.0.0" successtext="复制成功！"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" target="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="https://cdn.julis.wang/blog/img/ali_pay.jpeg"></li><li id="WeChat" qr="https://cdn.julis.wang/blog/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%B8%BF%E8%92%99/" rel="tag">鸿蒙</a></li></ul></div><div class="post-nav"><a class="pre" href="/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/">[Compose Multiplatform]跨平台博客应用实践</a><a class="next" href="/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/">KV-存储之mmkv</a></div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:admin@domain.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">38</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/%E8%A7%86%E9%A2%91/" style="font-size: 15px;">视频</a> <a href="/tags/flutter/" style="font-size: 15px;">flutter</a> <a href="/tags/mac/" style="font-size: 15px;">mac</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/">手写一个精简版Koin：深入理解依赖注入核心原理</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/">[Compose Multiplatform]跨平台博客应用实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/05/16/%E9%B8%BF%E8%92%99-%E5%86%99%E4%BA%86%E4%B8%AA%E5%9F%BA%E4%BA%8EHexo%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%B8%BF%E8%92%99App/">[鸿蒙]写了个基于Hexo博客的鸿蒙App</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/">KV-存储之mmkv</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/17/Learn-from-RetroFit/">RetroFit2 源码学习相关</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/02/24/Android%E5%B1%8F%E5%B9%95%E5%88%B7%E6%96%B0%E6%9C%BA%E5%88%B6/">Android屏幕刷新机制</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/11/10/%E5%85%B3%E4%BA%8E-pthread-key-t-%E5%AF%BC%E8%87%B4%E7%9A%84-Android-Crash-%E7%9A%84%E6%8E%A2%E7%B4%A2/">关于 pthread_key_t 导致的 Android Crash 的探索</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/08/25/%E9%97%AE%E9%A2%98%E8%AE%B0%E5%BD%95-Hexo-TypeError-isDate-is-not-a-function/">[问题记录]Hexo TypeError: isDate is not a function</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/07/09/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91%E4%BA%BA%E5%91%98%E7%9A%84%E5%B8%B8%E9%9D%92%E6%8A%80%E8%83%BD/">[译]软件开发人员的常青技能</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/04/11/%E5%85%B3%E4%BA%8EWindows%E4%B8%AD%E6%96%87%E5%AD%97%E7%AC%A6%E4%B9%B1%E7%A0%81/">UTF-8字符编码相关</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a><ul></ul><a href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank">豆瓣</a><ul></ul><a href="mailto:1607637473@qq.com" title="邮箱" target="_blank">邮箱</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2025 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+if (search_path.length == 0) {
+  search_path = 'search.xml';
+}
+var path = '/' + search_path;
+searchFunc(path, 'local-search-input', 'local-search-result');
+</script><script type="text/javascript" src="/js/copycode.js?v=1.0.0" successtext="复制成功！"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css?v=1.0.0"><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script></div></body></html>
