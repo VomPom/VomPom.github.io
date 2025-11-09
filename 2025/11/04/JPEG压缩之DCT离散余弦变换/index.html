@@ -1,0 +1,215 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="落叶挽歌"><title>JPEG压缩之DCT离散余弦变换 | 落叶挽歌</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="https://unpkg.com/normalize.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/pure-min.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="https://unpkg.com/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?' + 'a642bfb7c75afbc4fe68fd942180298b';
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+  })();</script><script type="text/javascript" src="https://unpkg.com/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="https://unpkg.com/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="https://unpkg.com/toastr/build/toastr.min.css"><div class="darkmode-toggle">🌓</div><script>var prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+var toggle = document.querySelector('.darkmode-toggle');
+var html = document.querySelector('html');
+
+html.dataset.dark = localStorage.dark || prefersDarkMode.matches;
+
+toggle.addEventListener('click', () => {
+localStorage.dark = !(html.dataset.dark == 'true');
+html.dataset.dark = localStorage.dark;
+});</script><meta name="generator" content="Hexo 7.3.0"><style>mjx-container[jax="SVG"] {
+  direction: ltr;
+}
+
+mjx-container[jax="SVG"] > svg {
+  overflow: visible;
+}
+
+mjx-container[jax="SVG"][display="true"] {
+  display: block;
+  text-align: center;
+  margin: 1em 0;
+}
+
+mjx-container[jax="SVG"][justify="left"] {
+  text-align: left;
+}
+
+mjx-container[jax="SVG"][justify="right"] {
+  text-align: right;
+}
+
+g[data-mml-node="merror"] > g {
+  fill: red;
+  stroke: red;
+}
+
+g[data-mml-node="merror"] > rect[data-background] {
+  fill: yellow;
+  stroke: none;
+}
+
+g[data-mml-node="mtable"] > line[data-line] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > rect[data-frame] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > .mjx-dashed {
+  stroke-dasharray: 140;
+}
+
+g[data-mml-node="mtable"] > .mjx-dotted {
+  stroke-linecap: round;
+  stroke-dasharray: 0,140;
+}
+
+g[data-mml-node="mtable"] > svg {
+  overflow: visible;
+}
+
+[jax="SVG"] mjx-tool {
+  display: inline-block;
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+[jax="SVG"] mjx-tool > mjx-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+mjx-tool > mjx-tip {
+  display: inline-block;
+  padding: .2em;
+  border: 1px solid #888;
+  font-size: 70%;
+  background-color: #F8F8F8;
+  color: black;
+  box-shadow: 2px 2px 5px #AAAAAA;
+}
+
+g[data-mml-node="maction"][data-toggle] {
+  cursor: pointer;
+}
+
+mjx-status {
+  display: block;
+  position: fixed;
+  left: 1em;
+  bottom: 1em;
+  min-width: 25%;
+  padding: .2em .4em;
+  border: 1px solid #888;
+  font-size: 90%;
+  background-color: #F8F8F8;
+  color: black;
+}
+
+foreignObject[data-mjx-xml] {
+  font-family: initial;
+  line-height: normal;
+  overflow: visible;
+}
+
+.MathJax path {
+  stroke-width: 3;
+}
+
+mjx-container[display="true"] {
+  overflow: auto hidden;
+}
+
+mjx-container[display="true"] + br {
+  display: none;
+}
+</style><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">JPEG压缩之DCT离散余弦变换</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="https://k.julis.wang"><i class="fa fa-wikipedia-w"> 知识</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">JPEG压缩之DCT离散余弦变换</h1><div class="post-meta">2025年11月04日<span> | </span><span class="category"><a href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 1.6k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 6</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><p>在<a href="https://github.com/leandromoreira/digital_video_introduction.git">digital_video_introduction</a>的一节中讲解 <a href="https://github.com/leandromoreira/digital_video_introduction/blob/master/README-cn.md#%E8%A7%86%E9%A2%91%E7%BC%96%E8%A7%A3%E7%A0%81%E5%99%A8%E6%98%AF%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9C%E7%9A%84">视频编解码器是如何工作的？</a>提到了 DCT，此前没有太关注，最近有对相关的原理进行学习了解，本文对 DCT 离散余弦变换相关的内容进行整理总结。<br>JPEG 使用的是 <strong>二维 DCT</strong>，因为它处理的是图像（二维信号）,理解二维 DCT 的基础是一维 DCT。</p>
+<h3 id="一维离散余弦变换"><a href="#一维离散余弦变换" class="headerlink" title="一维离散余弦变换"></a>一维离散余弦变换</h3><p>一维 DCT 将一个长度为 N 的信号序列（例如一行像素值）从空间域转换到频域。最常用的是 <strong>DCT-II</strong> 类型，这也是 JPEG 标准所使用的。</p>
+<p><strong>正变换：</strong> 从空间域到频域</p>
+<script type="math/tex; mode=display">
+
+F(u) = C(u) \sum_{x=0}^{N-1} f(x) \cdot \cos\left[\frac{\pi u (2x + 1)}{2N}\right]</script><p>其中：</p>
+<ul>
+<li><script type="math/tex">f(x)</script>  是输入信号在位置 <script type="math/tex">x</script> 的值（例如，像素亮度）。</li>
+<li><script type="math/tex">F(u)</script>  是变换后得到的第 <script type="math/tex">u</script> 个频率分量（DCT 系数）。</li>
+<li><script type="math/tex">N</script>  是信号的长度（在 JPEG 中，通常是 8）。</li>
+<li><script type="math/tex">u</script> 是频率索引，<script type="math/tex">u = 0, 1, \dots, N-1</script>。</li>
+<li><script type="math/tex">x</script> 是空间位置索引，<script type="math/tex">x = 0, 1, \dots, N-1</script>。</li>
+<li><script type="math/tex">C(u)</script> 是一个归一化系数，定义为：</li>
+</ul>
+<script type="math/tex; mode=display">
+  C(u) = \begin{cases}
+  \sqrt{\frac{1}{N}} & \text{if } u = 0 \\
+  \sqrt{\frac{2}{N}} & \text{if } u > 0
+  \end{cases}</script><p><strong>关键点：</strong></p>
+<ul>
+<li>当 <script type="math/tex">u = 0</script> 时，<script type="math/tex">F(0)</script> 被称为 <strong>直流系数</strong>。它实际上是整个信号块的平均值。</li>
+<li>当 <script type="math/tex">u > 0</script> 时，<script type="math/tex">F(u)</script> 被称为 <strong>交流系数</strong>。它们代表了信号中不同频率的振荡模式。<script type="math/tex">u</script> 越大，代表的频率越高。</li>
+</ul>
+<h3 id="二维离散余弦变换"><a href="#二维离散余弦变换" class="headerlink" title="二维离散余弦变换"></a>二维离散余弦变换</h3><p>JPEG 将图像分割成 8x8 的小块，然后对每个块独立进行二维 DCT。二维 DCT 可以看作先对每一行进行一维 DCT，然后再对每一列进行一维 DCT（顺序可互换）。</p>
+<p><strong>正变换：</strong> 从空间域到频域</p>
+<script type="math/tex; mode=display">
+
+F(u, v) = C(u) C(v) \sum_{x=0}^{N-1} \sum_{y=0}^{N-1} f(x, y) \cdot \cos\left[\frac{\pi u (2x + 1)}{2N}\right] \cdot \cos\left[\frac{\pi v (2y + 1)}{2N}\right]</script><p>其中：</p>
+<ul>
+<li><script type="math/tex">f(x, y)</script> 是 8x8 图像块中在位置 <script type="math/tex">(x, y)</script> 的像素值。在计算前，通常会先将像素值减去 128（即 -128 到 127 的范围），使其围绕零对称。</li>
+<li><script type="math/tex">F(u, v)</script> 是变换后得到的在频率 <script type="math/tex">(u, v)</script> 上的 DCT 系数。</li>
+<li><script type="math/tex">N = 8</script>（对于标准的 JPEG）。</li>
+<li><script type="math/tex">u, v</script> 是频率索引，<script type="math/tex">u, v = 0, 1, \dots, 7</script>。</li>
+<li><script type="math/tex">x, y</script> 是空间位置索引，<script type="math/tex">x, y = 0, 1, \dots, 7</script>。</li>
+<li><script type="math/tex">C(u)</script> 和 <script type="math/tex">C(v)</script> 的定义与一维情况相同：</li>
+</ul>
+<script type="math/tex; mode=display">
+  C(u) = \begin{cases}
+  \sqrt{\frac{1}{8}} & \text{if } u = 0 \\
+  \sqrt{\frac{2}{8}} & \text{if } u > 0
+  \end{cases}</script><p>  同理于 <script type="math/tex">C(v)</script>。</p>
+<p><strong>关键点：</strong></p>
+<ul>
+<li><script type="math/tex">F(0, 0)</script> 是 <strong>直流系数</strong>，代表整个 8x8 块的平均亮度。</li>
+<li>所有其他的 <script type="math/tex">F(u, v)</script> 都是 <strong>交流系数</strong>。</li>
+<li>系数 <script type="math/tex">F(u, v)</script> 的 <script type="math/tex">u</script> 和 <script type="math/tex">v</script> 值越大，代表在水平和垂直方向上的频率越高。</li>
+<li>在变换后的 8x8 系数矩阵中，<strong>左上角是低频系数，右下角是高频系数</strong>。图像的大部分能量（信息）都集中在低频区域，这是 JPEG 能够实现高压缩比的关键。</li>
+</ul>
+<h3 id="逆离散余弦变换"><a href="#逆离散余弦变换" class="headerlink" title="逆离散余弦变换"></a>逆离散余弦变换</h3><p>为了从频域数据重建图像，需要使用逆 DCT。</p>
+<p><strong>逆变换：</strong> 从频域回到空间域</p>
+<script type="math/tex; mode=display">
+f(x, y) = \sum_{u=0}^{N-1} \sum_{v=0}^{N-1} C(u) C(v) F(u, v) \cdot \cos\left[\frac{\pi u (2x + 1)}{2N}\right] \cdot \cos\left[\frac{\pi v (2y + 1)}{2N}\right]</script><p>公式中的各项含义与正变换完全相同。</p>
+<h3 id="简单理解"><a href="#简单理解" class="headerlink" title="简单理解"></a>简单理解</h3><p><strong>DCT的本质与核心直觉</strong></p>
+<p>DCT可以看作离散傅里叶变换（DFT）的一种特殊形式，主要处理实数信号，并且有很好的能量集中特性。</p>
+<p><strong>它的核心思想是</strong>：任何一个8x8的像素块，都可以看作是64种不同频率的标准余弦波（即“基础图案”）按照特定权重（也就是DCT系数）叠加而成的。<br><img src="https://ww2.mathworks.cn/help/images/basis8.gif" alt=""><br>在这些基础图案中：</p>
+<ul>
+<li><p>低频成分（对应于系数矩阵左上角，u和v值较小的部分）代表了图像块的大致轮廓和平滑变化的背景。</p>
+</li>
+<li><p>高频成分（对应于系数矩阵右下角，u和v值较大的部分）代表了图像块的细节、锐利边缘和纹理。</p>
+</li>
+</ul>
+<p>图像的大部分视觉能量（信息） 通常都集中在低频区域。这意味著，我们往往只需要少数几个大的低频系数，就能大致描述出图像块的主要样貌。</p>
+<p><strong>用二进制分解来类比DCT的能量集中</strong></p>
+<script type="math/tex; mode=display">
+171=2^7+2^5+2^3+2^1+2^0</script><p>如果我们将所有的0系数也补上</p>
+<script type="math/tex; mode=display">
+171=2^7+0*2^6+2^5+0*2^4+2^3+0*2^2+2^1+2^0</script><p>那么对应的系数数组为：[1,0,1,0,1,0,1,1]</p>
+<p>如果我们简单将数组低索引称之为”低频”，高索引为”高频”,将数据压缩只包含”低频”系数<br>[1,0,0,0,0,0,0,0]=&gt;2^7=128 大概丢了25%的信息<br>[1,0,1,0,0,0,0,0]=&gt;2^7+2^5=160 大概丢了6%的信息<br>[1,0,1,0,1,0,0,0]=&gt;2^7+2^5=160 大概丢了1%的信息<br>……</p>
+<p>可以看到“高频”信号对整个数据的影响比较小，这与DCT的思想不谋而合：我们保留对整体影响大的主要成分（低频系数），而舍弃或粗略表示那些影响细微的成分（高频系数），从而实现压缩。</p>
+<h3 id="总结-JPEG-压缩的流程"><a href="#总结-JPEG-压缩的流程" class="headerlink" title="总结 JPEG 压缩的流程"></a>总结 JPEG 压缩的流程</h3><ol>
+<li><strong>颜色空间转换</strong>：将图像从 RGB 转换到 YCbCr。</li>
+<li><strong>分块</strong>：将每个分量（Y, Cb, Cr）图像分割成 8x8 的块。</li>
+<li><strong>前向 DCT</strong>：对每个 8x8 块应用上述的二维 DCT 公式，得到频率系数。</li>
+<li><strong>量化</strong>：将 DCT 系数除以一个对应的量化步长（来自量化表），并四舍五入到整数。<strong>这一步是有损的，是信息丢失的主要来源</strong>。高频系数通常会被量化为 0。</li>
+<li><strong>熵编码</strong>：对量化后的系数进行 Zigzag 扫描、差分脉冲编码调制和霍夫曼编码，生成最终的 .jpg 文件。</li>
+</ol>
+<p>当解码时，过程是反过来的：熵解码 -&gt; 反量化 -&gt; 逆 DCT -&gt; 合并块 -&gt; 转换回 RGB。</p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><p> <a href="https://zhuanlan.zhihu.com/p/40356456">《影像算法解析——JPEG 压缩算法》</a><br> <a href="https://www.cnblogs.com/zxporz/p/16072580.html">《白话文理解DCT离散余弦变换》</a><br> <a href="https://ww2.mathworks.cn/help/images/discrete-cosine-transform.html">《离散余弦变换》</a><br> <strong>视频</strong><br> <a href="https://www.youtube.com/watch?v=0me3guauqOU">The Unreasonable Effectiveness of JPEG: A Signal Processing Approach</a><br>中文翻译版本<a href="https://www.bilibili.com/video/BV1bc411q7YG/?spm_id_from=333.1387.favlist.content.click&amp;vd_source=3fd1362ef2060381db6c532cb37979dc">《离散余弦变换可视化讲解》</a></p>
+</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css?v=1.0.0"><script type="text/javascript" src="/js/donate.js?v=1.0.0" successtext="复制成功！"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" target="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="https://cdn.julis.wang/blog/img/ali_pay.jpeg"></li><li id="WeChat" qr="https://cdn.julis.wang/blog/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%95%B0%E5%AD%A6/" rel="tag">数学</a></li></ul></div><div class="post-nav"><a class="next" href="/2025/09/15/H264%E7%A0%81%E6%B5%81%E7%BB%93%E6%9E%84%E7%90%86%E8%A7%A3%E6%95%B4%E7%90%86/">H264码流结构理解整理</a></div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:admin@domain.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank" style="margin-inline:5px"> <i class="fa fa-vimeo-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">40</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/" style="font-size: 15px;">音视频</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/%E5%A4%A7%E5%AD%A6/" style="font-size: 15px;">大学</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/">JPEG压缩之DCT离散余弦变换</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/09/15/H264%E7%A0%81%E6%B5%81%E7%BB%93%E6%9E%84%E7%90%86%E8%A7%A3%E6%95%B4%E7%90%86/">H264码流结构理解整理</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/">手写一个精简版Koin：深入理解依赖注入核心原理</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/">[Compose Multiplatform]跨平台博客应用实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/05/16/%E9%B8%BF%E8%92%99-%E5%86%99%E4%BA%86%E4%B8%AA%E5%9F%BA%E4%BA%8EHexo%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%B8%BF%E8%92%99App/">[鸿蒙]写了个基于Hexo博客的鸿蒙App</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/">KV-存储之mmkv</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/17/Learn-from-RetroFit/">RetroFit2 源码学习相关</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/02/24/Android%E5%B1%8F%E5%B9%95%E5%88%B7%E6%96%B0%E6%9C%BA%E5%88%B6/">Android屏幕刷新机制</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/11/10/%E5%85%B3%E4%BA%8E-pthread-key-t-%E5%AF%BC%E8%87%B4%E7%9A%84-Android-Crash-%E7%9A%84%E6%8E%A2%E7%B4%A2/">关于 pthread_key_t 导致的 Android Crash 的探索</a></li><li class="post-list-item"><a class="post-list-link" href="/2024/07/09/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91%E4%BA%BA%E5%91%98%E7%9A%84%E5%B8%B8%E9%9D%92%E6%8A%80%E8%83%BD/">[译]软件开发人员的常青技能</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://k.julis.wang" title="Knowledge Precipitation" target="_blank">Knowledge Precipitation</a><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2025 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+if (search_path.length == 0) {
+  search_path = 'search.xml';
+}
+var path = '/' + search_path;
+searchFunc(path, 'local-search-input', 'local-search-result');
+</script><script type="text/javascript" src="/js/copycode.js?v=1.0.0" successtext="复制成功！"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css?v=1.0.0"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script></div></body></html>
