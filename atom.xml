@@ -3,11 +3,11 @@
   <title>落叶挽歌</title>
   
   <subtitle>juliswang&#39;s 博客</subtitle>
-  <link href="http://vompom.github.com/atom.xml" rel="self"/>
+  <link href="http://julis.wang/atom.xml" rel="self"/>
   
-  <link href="http://vompom.github.com/"/>
+  <link href="http://julis.wang/"/>
   <updated>2026-02-09T11:48:13.026Z</updated>
-  <id>http://vompom.github.com/</id>
+  <id>http://julis.wang/</id>
   
   <author>
     <name>落叶挽歌</name>
@@ -18,8 +18,8 @@
   
   <entry>
     <title>如何构建一个好用的SDK</title>
-    <link href="http://vompom.github.com/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/"/>
-    <id>http://vompom.github.com/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/</id>
+    <link href="http://julis.wang/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/"/>
+    <id>http://julis.wang/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/</id>
     <published>2026-02-04T12:53:23.000Z</published>
     <updated>2026-02-09T11:48:13.026Z</updated>
     
@@ -34,17 +34,17 @@
     
     
     
-    <category term="思考总结" scheme="http://vompom.github.com/categories/thinking/"/>
+    <category term="思考总结" scheme="http://julis.wang/categories/thinking/"/>
     
     
-    <category term="SDK" scheme="http://vompom.github.com/tags/SDK/"/>
+    <category term="SDK" scheme="http://julis.wang/tags/SDK/"/>
     
   </entry>
   
   <entry>
     <title>JPEG压缩之DCT离散余弦变换</title>
-    <link href="http://vompom.github.com/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/"/>
-    <id>http://vompom.github.com/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/</id>
+    <link href="http://julis.wang/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/"/>
+    <id>http://julis.wang/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/</id>
     <published>2025-11-04T14:25:17.000Z</published>
     <updated>2025-11-08T03:17:35.317Z</updated>
     
@@ -58,17 +58,17 @@
     
     
     
-    <category term="算法研究" scheme="http://vompom.github.com/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/"/>
+    <category term="算法研究" scheme="http://julis.wang/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/"/>
     
     
-    <category term="数学" scheme="http://vompom.github.com/tags/%E6%95%B0%E5%AD%A6/"/>
+    <category term="数学" scheme="http://julis.wang/tags/%E6%95%B0%E5%AD%A6/"/>
     
   </entry>
   
   <entry>
     <title>H264码流结构理解整理</title>
-    <link href="http://vompom.github.com/2025/09/15/H264%E7%A0%81%E6%B5%81%E7%BB%93%E6%9E%84%E7%90%86%E8%A7%A3%E6%95%B4%E7%90%86/"/>
-    <id>http://vompom.github.com/2025/09/15/H264%E7%A0%81%E6%B5%81%E7%BB%93%E6%9E%84%E7%90%86%E8%A7%A3%E6%95%B4%E7%90%86/</id>
+    <link href="http://julis.wang/2025/09/15/H264%E7%A0%81%E6%B5%81%E7%BB%93%E6%9E%84%E7%90%86%E8%A7%A3%E6%95%B4%E7%90%86/"/>
+    <id>http://julis.wang/2025/09/15/H264%E7%A0%81%E6%B5%81%E7%BB%93%E6%9E%84%E7%90%86%E8%A7%A3%E6%95%B4%E7%90%86/</id>
     <published>2025-09-15T13:31:00.000Z</published>
     <updated>2025-12-16T13:30:14.834Z</updated>
     
@@ -84,14 +84,14 @@
     
     
     
-    <category term="音视频" scheme="http://vompom.github.com/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
+    <category term="音视频" scheme="http://julis.wang/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
     
   </entry>
   
   <entry>
     <title>手写一个精简版Koin：深入理解依赖注入核心原理</title>
-    <link href="http://vompom.github.com/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/"/>
-    <id>http://vompom.github.com/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/</id>
+    <link href="http://julis.wang/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/"/>
+    <id>http://julis.wang/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/</id>
     <published>2025-08-25T13:08:00.000Z</published>
     <updated>2025-08-25T13:44:34.603Z</updated>
     
@@ -105,17 +105,17 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="koin" scheme="http://vompom.github.com/tags/koin/"/>
+    <category term="koin" scheme="http://julis.wang/tags/koin/"/>
     
   </entry>
   
   <entry>
     <title>[Compose Multiplatform]跨平台博客应用实践</title>
-    <link href="http://vompom.github.com/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/"/>
-    <id>http://vompom.github.com/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/</id>
+    <link href="http://julis.wang/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/"/>
+    <id>http://julis.wang/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/</id>
     <published>2025-07-28T12:28:00.000Z</published>
     <updated>2026-02-09T10:48:52.288Z</updated>
     
@@ -129,17 +129,17 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="KMP" scheme="http://vompom.github.com/tags/KMP/"/>
+    <category term="KMP" scheme="http://julis.wang/tags/KMP/"/>
     
   </entry>
   
   <entry>
     <title>[鸿蒙]写了个基于Hexo博客的鸿蒙App</title>
-    <link href="http://vompom.github.com/2025/05/16/%E9%B8%BF%E8%92%99-%E5%86%99%E4%BA%86%E4%B8%AA%E5%9F%BA%E4%BA%8EHexo%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%B8%BF%E8%92%99App/"/>
-    <id>http://vompom.github.com/2025/05/16/%E9%B8%BF%E8%92%99-%E5%86%99%E4%BA%86%E4%B8%AA%E5%9F%BA%E4%BA%8EHexo%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%B8%BF%E8%92%99App/</id>
+    <link href="http://julis.wang/2025/05/16/%E9%B8%BF%E8%92%99-%E5%86%99%E4%BA%86%E4%B8%AA%E5%9F%BA%E4%BA%8EHexo%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%B8%BF%E8%92%99App/"/>
+    <id>http://julis.wang/2025/05/16/%E9%B8%BF%E8%92%99-%E5%86%99%E4%BA%86%E4%B8%AA%E5%9F%BA%E4%BA%8EHexo%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%B8%BF%E8%92%99App/</id>
     <published>2025-05-16T12:10:00.000Z</published>
     <updated>2026-02-09T10:49:11.605Z</updated>
     
@@ -153,17 +153,17 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="鸿蒙" scheme="http://vompom.github.com/tags/%E9%B8%BF%E8%92%99/"/>
+    <category term="鸿蒙" scheme="http://julis.wang/tags/%E9%B8%BF%E8%92%99/"/>
     
   </entry>
   
   <entry>
     <title>KV-存储之mmkv</title>
-    <link href="http://vompom.github.com/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/"/>
-    <id>http://vompom.github.com/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/</id>
+    <link href="http://julis.wang/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/"/>
+    <id>http://julis.wang/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/</id>
     <published>2025-03-30T03:38:00.000Z</published>
     <updated>2025-05-20T11:46:57.000Z</updated>
     
@@ -178,14 +178,14 @@
     
     
     
-    <category term="mmap" scheme="http://vompom.github.com/tags/mmap/"/>
+    <category term="mmap" scheme="http://julis.wang/tags/mmap/"/>
     
   </entry>
   
   <entry>
     <title>RetroFit2 源码学习相关</title>
-    <link href="http://vompom.github.com/2025/03/17/Learn-from-RetroFit/"/>
-    <id>http://vompom.github.com/2025/03/17/Learn-from-RetroFit/</id>
+    <link href="http://julis.wang/2025/03/17/Learn-from-RetroFit/"/>
+    <id>http://julis.wang/2025/03/17/Learn-from-RetroFit/</id>
     <published>2025-03-17T12:28:00.000Z</published>
     <updated>2025-05-20T11:46:57.000Z</updated>
     
@@ -200,17 +200,17 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="Android" scheme="http://vompom.github.com/tags/Android/"/>
+    <category term="Android" scheme="http://julis.wang/tags/Android/"/>
     
   </entry>
   
   <entry>
     <title>Android屏幕刷新机制</title>
-    <link href="http://vompom.github.com/2025/02/24/Android%E5%B1%8F%E5%B9%95%E5%88%B7%E6%96%B0%E6%9C%BA%E5%88%B6/"/>
-    <id>http://vompom.github.com/2025/02/24/Android%E5%B1%8F%E5%B9%95%E5%88%B7%E6%96%B0%E6%9C%BA%E5%88%B6/</id>
+    <link href="http://julis.wang/2025/02/24/Android%E5%B1%8F%E5%B9%95%E5%88%B7%E6%96%B0%E6%9C%BA%E5%88%B6/"/>
+    <id>http://julis.wang/2025/02/24/Android%E5%B1%8F%E5%B9%95%E5%88%B7%E6%96%B0%E6%9C%BA%E5%88%B6/</id>
     <published>2025-02-24T02:49:00.000Z</published>
     <updated>2025-05-20T11:46:57.000Z</updated>
     
@@ -224,17 +224,17 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="安卓" scheme="http://vompom.github.com/tags/Android/"/>
+    <category term="安卓" scheme="http://julis.wang/tags/Android/"/>
     
   </entry>
   
   <entry>
     <title>关于 pthread_key_t 导致的 Android Crash 的探索</title>
-    <link href="http://vompom.github.com/2024/11/10/%E5%85%B3%E4%BA%8E-pthread-key-t-%E5%AF%BC%E8%87%B4%E7%9A%84-Android-Crash-%E7%9A%84%E6%8E%A2%E7%B4%A2/"/>
-    <id>http://vompom.github.com/2024/11/10/%E5%85%B3%E4%BA%8E-pthread-key-t-%E5%AF%BC%E8%87%B4%E7%9A%84-Android-Crash-%E7%9A%84%E6%8E%A2%E7%B4%A2/</id>
+    <link href="http://julis.wang/2024/11/10/%E5%85%B3%E4%BA%8E-pthread-key-t-%E5%AF%BC%E8%87%B4%E7%9A%84-Android-Crash-%E7%9A%84%E6%8E%A2%E7%B4%A2/"/>
+    <id>http://julis.wang/2024/11/10/%E5%85%B3%E4%BA%8E-pthread-key-t-%E5%AF%BC%E8%87%B4%E7%9A%84-Android-Crash-%E7%9A%84%E6%8E%A2%E7%B4%A2/</id>
     <published>2024-11-10T08:11:00.000Z</published>
     <updated>2025-05-20T11:46:57.000Z</updated>
     
@@ -248,17 +248,17 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="Android" scheme="http://vompom.github.com/tags/Android/"/>
+    <category term="Android" scheme="http://julis.wang/tags/Android/"/>
     
   </entry>
   
   <entry>
     <title>[译]软件开发人员的常青技能</title>
-    <link href="http://vompom.github.com/2024/07/09/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91%E4%BA%BA%E5%91%98%E7%9A%84%E5%B8%B8%E9%9D%92%E6%8A%80%E8%83%BD/"/>
-    <id>http://vompom.github.com/2024/07/09/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91%E4%BA%BA%E5%91%98%E7%9A%84%E5%B8%B8%E9%9D%92%E6%8A%80%E8%83%BD/</id>
+    <link href="http://julis.wang/2024/07/09/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91%E4%BA%BA%E5%91%98%E7%9A%84%E5%B8%B8%E9%9D%92%E6%8A%80%E8%83%BD/"/>
+    <id>http://julis.wang/2024/07/09/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91%E4%BA%BA%E5%91%98%E7%9A%84%E5%B8%B8%E9%9D%92%E6%8A%80%E8%83%BD/</id>
     <published>2024-07-08T23:27:19.000Z</published>
     <updated>2026-02-09T10:49:55.671Z</updated>
     
@@ -272,15 +272,15 @@
     
     
     
-    <category term="思考总结" scheme="http://vompom.github.com/categories/thinking/"/>
+    <category term="思考总结" scheme="http://julis.wang/categories/thinking/"/>
     
     
   </entry>
   
   <entry>
     <title>UTF-8字符编码相关</title>
-    <link href="http://vompom.github.com/2024/04/11/%E5%85%B3%E4%BA%8EWindows%E4%B8%AD%E6%96%87%E5%AD%97%E7%AC%A6%E4%B9%B1%E7%A0%81/"/>
-    <id>http://vompom.github.com/2024/04/11/%E5%85%B3%E4%BA%8EWindows%E4%B8%AD%E6%96%87%E5%AD%97%E7%AC%A6%E4%B9%B1%E7%A0%81/</id>
+    <link href="http://julis.wang/2024/04/11/%E5%85%B3%E4%BA%8EWindows%E4%B8%AD%E6%96%87%E5%AD%97%E7%AC%A6%E4%B9%B1%E7%A0%81/"/>
+    <id>http://julis.wang/2024/04/11/%E5%85%B3%E4%BA%8EWindows%E4%B8%AD%E6%96%87%E5%AD%97%E7%AC%A6%E4%B9%B1%E7%A0%81/</id>
     <published>2024-04-11T06:23:00.000Z</published>
     <updated>2025-05-20T11:46:57.000Z</updated>
     
@@ -295,14 +295,14 @@
     
     
     
-    <category term="UTF-8" scheme="http://vompom.github.com/tags/UTF-8/"/>
+    <category term="UTF-8" scheme="http://julis.wang/tags/UTF-8/"/>
     
   </entry>
   
   <entry>
     <title>实现一个自定义 FFmpeg Filter</title>
-    <link href="http://vompom.github.com/2024/03/07/%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E8%87%AA%E5%AE%9A%E4%B9%89FFmpeg-Filter/"/>
-    <id>http://vompom.github.com/2024/03/07/%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E8%87%AA%E5%AE%9A%E4%B9%89FFmpeg-Filter/</id>
+    <link href="http://julis.wang/2024/03/07/%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E8%87%AA%E5%AE%9A%E4%B9%89FFmpeg-Filter/"/>
+    <id>http://julis.wang/2024/03/07/%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E8%87%AA%E5%AE%9A%E4%B9%89FFmpeg-Filter/</id>
     <published>2024-03-07T02:58:00.000Z</published>
     <updated>2025-12-22T03:35:09.445Z</updated>
     
@@ -316,19 +316,19 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="FFmpeg" scheme="http://vompom.github.com/tags/FFmpeg/"/>
+    <category term="FFmpeg" scheme="http://julis.wang/tags/FFmpeg/"/>
     
-    <category term="音视频" scheme="http://vompom.github.com/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
+    <category term="音视频" scheme="http://julis.wang/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
     
   </entry>
   
   <entry>
     <title>RecyclerView自定义LayoutManager从0到1实践</title>
-    <link href="http://vompom.github.com/2023/10/31/%E8%87%AA%E5%AE%9A%E4%B9%89LayoutManager%E4%BB%8E0%E5%88%B01%E5%AE%9E%E8%B7%B5/"/>
-    <id>http://vompom.github.com/2023/10/31/%E8%87%AA%E5%AE%9A%E4%B9%89LayoutManager%E4%BB%8E0%E5%88%B01%E5%AE%9E%E8%B7%B5/</id>
+    <link href="http://julis.wang/2023/10/31/%E8%87%AA%E5%AE%9A%E4%B9%89LayoutManager%E4%BB%8E0%E5%88%B01%E5%AE%9E%E8%B7%B5/"/>
+    <id>http://julis.wang/2023/10/31/%E8%87%AA%E5%AE%9A%E4%B9%89LayoutManager%E4%BB%8E0%E5%88%B01%E5%AE%9E%E8%B7%B5/</id>
     <published>2023-10-31T11:19:00.000Z</published>
     <updated>2025-05-20T11:46:57.000Z</updated>
     
@@ -343,14 +343,14 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/tags/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/tags/technology/"/>
     
   </entry>
   
   <entry>
     <title>Android 基于 J2V8 运行 JavasScript  实践</title>
-    <link href="http://vompom.github.com/2023/09/30/Android-J2V8-%E5%AE%9E%E8%B7%B5/"/>
-    <id>http://vompom.github.com/2023/09/30/Android-J2V8-%E5%AE%9E%E8%B7%B5/</id>
+    <link href="http://julis.wang/2023/09/30/Android-J2V8-%E5%AE%9E%E8%B7%B5/"/>
+    <id>http://julis.wang/2023/09/30/Android-J2V8-%E5%AE%9E%E8%B7%B5/</id>
     <published>2023-09-30T13:11:00.000Z</published>
     <updated>2025-05-20T11:46:57.000Z</updated>
     
@@ -364,17 +364,17 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="JavaScript" scheme="http://vompom.github.com/tags/JavaScript/"/>
+    <category term="JavaScript" scheme="http://julis.wang/tags/JavaScript/"/>
     
   </entry>
   
   <entry>
     <title>[转]《数字化视频技术概述》</title>
-    <link href="http://vompom.github.com/2023/09/15/%E8%BD%AC-%E3%80%8A%E6%95%B0%E5%AD%97%E5%8C%96%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF%E6%A6%82%E8%BF%B0%E3%80%8B/"/>
-    <id>http://vompom.github.com/2023/09/15/%E8%BD%AC-%E3%80%8A%E6%95%B0%E5%AD%97%E5%8C%96%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF%E6%A6%82%E8%BF%B0%E3%80%8B/</id>
+    <link href="http://julis.wang/2023/09/15/%E8%BD%AC-%E3%80%8A%E6%95%B0%E5%AD%97%E5%8C%96%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF%E6%A6%82%E8%BF%B0%E3%80%8B/"/>
+    <id>http://julis.wang/2023/09/15/%E8%BD%AC-%E3%80%8A%E6%95%B0%E5%AD%97%E5%8C%96%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF%E6%A6%82%E8%BF%B0%E3%80%8B/</id>
     <published>2023-09-15T12:11:00.000Z</published>
     <updated>2025-09-15T13:30:00.946Z</updated>
     
@@ -389,14 +389,14 @@
     
     
     
-    <category term="音视频" scheme="http://vompom.github.com/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
+    <category term="音视频" scheme="http://julis.wang/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
     
   </entry>
   
   <entry>
     <title>[转]OpenGL黑屏及渲染不出来的常见原因总结</title>
-    <link href="http://vompom.github.com/2023/01/15/%E8%BD%AC-OpenGL%E9%BB%91%E5%B1%8F%E5%8F%8A%E6%B8%B2%E6%9F%93%E4%B8%8D%E5%87%BA%E6%9D%A5%E7%9A%84%E5%B8%B8%E8%A7%81%E5%8E%9F%E5%9B%A0%E6%80%BB%E7%BB%93/"/>
-    <id>http://vompom.github.com/2023/01/15/%E8%BD%AC-OpenGL%E9%BB%91%E5%B1%8F%E5%8F%8A%E6%B8%B2%E6%9F%93%E4%B8%8D%E5%87%BA%E6%9D%A5%E7%9A%84%E5%B8%B8%E8%A7%81%E5%8E%9F%E5%9B%A0%E6%80%BB%E7%BB%93/</id>
+    <link href="http://julis.wang/2023/01/15/%E8%BD%AC-OpenGL%E9%BB%91%E5%B1%8F%E5%8F%8A%E6%B8%B2%E6%9F%93%E4%B8%8D%E5%87%BA%E6%9D%A5%E7%9A%84%E5%B8%B8%E8%A7%81%E5%8E%9F%E5%9B%A0%E6%80%BB%E7%BB%93/"/>
+    <id>http://julis.wang/2023/01/15/%E8%BD%AC-OpenGL%E9%BB%91%E5%B1%8F%E5%8F%8A%E6%B8%B2%E6%9F%93%E4%B8%8D%E5%87%BA%E6%9D%A5%E7%9A%84%E5%B8%B8%E8%A7%81%E5%8E%9F%E5%9B%A0%E6%80%BB%E7%BB%93/</id>
     <published>2023-01-15T04:18:00.000Z</published>
     <updated>2025-11-25T02:49:22.233Z</updated>
     
@@ -410,19 +410,19 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="音视频" scheme="http://vompom.github.com/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
+    <category term="音视频" scheme="http://julis.wang/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
     
-    <category term="OpenGL" scheme="http://vompom.github.com/tags/OpenGL/"/>
+    <category term="OpenGL" scheme="http://julis.wang/tags/OpenGL/"/>
     
   </entry>
   
   <entry>
     <title>FFmpeg.so 编译总结</title>
-    <link href="http://vompom.github.com/2023/01/09/FFmpeg-so-%E7%BC%96%E8%AF%91%E6%95%B4%E7%90%86/"/>
-    <id>http://vompom.github.com/2023/01/09/FFmpeg-so-%E7%BC%96%E8%AF%91%E6%95%B4%E7%90%86/</id>
+    <link href="http://julis.wang/2023/01/09/FFmpeg-so-%E7%BC%96%E8%AF%91%E6%95%B4%E7%90%86/"/>
+    <id>http://julis.wang/2023/01/09/FFmpeg-so-%E7%BC%96%E8%AF%91%E6%95%B4%E7%90%86/</id>
     <published>2023-01-09T02:36:00.000Z</published>
     <updated>2025-05-20T11:46:57.000Z</updated>
     
@@ -437,14 +437,14 @@
     
     
     
-    <category term="FFmpeg" scheme="http://vompom.github.com/tags/FFmpeg/"/>
+    <category term="FFmpeg" scheme="http://julis.wang/tags/FFmpeg/"/>
     
   </entry>
   
   <entry>
     <title>3D LUT 滤镜 shader 源码分析</title>
-    <link href="http://vompom.github.com/2022/11/24/LUT-Shader-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
-    <id>http://vompom.github.com/2022/11/24/LUT-Shader-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</id>
+    <link href="http://julis.wang/2022/11/24/LUT-Shader-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
+    <id>http://julis.wang/2022/11/24/LUT-Shader-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</id>
     <published>2022-11-24T03:36:00.000Z</published>
     <updated>2025-09-15T13:11:04.747Z</updated>
     
@@ -458,17 +458,17 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="音视频" scheme="http://vompom.github.com/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
+    <category term="音视频" scheme="http://julis.wang/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
     
   </entry>
   
   <entry>
     <title>Unity 实现利用 Andorid 能力进行视频渲染播放</title>
-    <link href="http://vompom.github.com/2022/10/25/Unity-%E5%AE%9E%E7%8E%B0%E5%88%A9%E7%94%A8-Andorid-%E8%83%BD%E5%8A%9B%E8%BF%9B%E8%A1%8C%E8%A7%86%E9%A2%91%E6%B8%B2%E6%9F%93%E6%92%AD%E6%94%BE/"/>
-    <id>http://vompom.github.com/2022/10/25/Unity-%E5%AE%9E%E7%8E%B0%E5%88%A9%E7%94%A8-Andorid-%E8%83%BD%E5%8A%9B%E8%BF%9B%E8%A1%8C%E8%A7%86%E9%A2%91%E6%B8%B2%E6%9F%93%E6%92%AD%E6%94%BE/</id>
+    <link href="http://julis.wang/2022/10/25/Unity-%E5%AE%9E%E7%8E%B0%E5%88%A9%E7%94%A8-Andorid-%E8%83%BD%E5%8A%9B%E8%BF%9B%E8%A1%8C%E8%A7%86%E9%A2%91%E6%B8%B2%E6%9F%93%E6%92%AD%E6%94%BE/"/>
+    <id>http://julis.wang/2022/10/25/Unity-%E5%AE%9E%E7%8E%B0%E5%88%A9%E7%94%A8-Andorid-%E8%83%BD%E5%8A%9B%E8%BF%9B%E8%A1%8C%E8%A7%86%E9%A2%91%E6%B8%B2%E6%9F%93%E6%92%AD%E6%94%BE/</id>
     <published>2022-10-25T02:00:00.000Z</published>
     <updated>2025-09-15T13:10:48.829Z</updated>
     
@@ -483,12 +483,12 @@
     
     
     
-    <category term="技术文章" scheme="http://vompom.github.com/categories/technology/"/>
+    <category term="技术文章" scheme="http://julis.wang/categories/technology/"/>
     
     
-    <category term="音视频" scheme="http://vompom.github.com/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
+    <category term="音视频" scheme="http://julis.wang/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/"/>
     
-    <category term="Unity" scheme="http://vompom.github.com/tags/Unity/"/>
+    <category term="Unity" scheme="http://julis.wang/tags/Unity/"/>
     
   </entry>
   
