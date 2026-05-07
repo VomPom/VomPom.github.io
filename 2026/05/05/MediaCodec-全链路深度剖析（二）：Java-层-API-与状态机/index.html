@@ -1,0 +1,196 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="落叶挽歌"><title>MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机 | 落叶挽歌</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="https://unpkg.com/normalize.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/pure-min.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="https://unpkg.com/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?' + 'a642bfb7c75afbc4fe68fd942180298b';
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+  })();</script><script type="text/javascript" src="https://unpkg.com/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="https://unpkg.com/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="https://unpkg.com/toastr/build/toastr.min.css"><div class="darkmode-toggle">🌓</div><script>var prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+var toggle = document.querySelector('.darkmode-toggle');
+var html = document.querySelector('html');
+
+html.dataset.dark = localStorage.dark || prefersDarkMode.matches;
+
+toggle.addEventListener('click', () => {
+localStorage.dark = !(html.dataset.dark == 'true');
+html.dataset.dark = localStorage.dark;
+});</script><meta name="generator" content="Hexo 7.3.0"><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="https://k.julis.wang"><i class="fa fa-wikipedia-w"> 知识</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机</h1><div class="post-meta">2026年05月05日<script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 1.4k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 6</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><p><strong>系列导读</strong>：主系列从”一帧像素怎么走完六层架构”切入，偏底层。但在开挖之前，得先让读者<strong>站在 App 工程师的视角</strong>，把 <code>MediaCodec</code> 的 Java API 摸清楚——状态机有哪些、常用 API 各自扮演什么角色、哪些坑踩了会直接 crash。</p>
+<h2 id="一句话理解-MediaCodec"><a href="#一句话理解-MediaCodec" class="headerlink" title="一句话理解 MediaCodec"></a>一句话理解 MediaCodec</h2><p><code>MediaCodec</code> 是一台<strong>带缓冲池的状态机</strong>：</p>
+<ul>
+<li><strong>状态机</strong>决定”你现在能做什么”——错了就抛 <code>IllegalStateException</code>；</li>
+<li><strong>缓冲池</strong>是 App 与底层 codec 之间的传送带——你租一个 buffer、填数据、还回去；底层处理完再租一个 buffer、拿数据、你还回去。</li>
+</ul>
+<h2 id="MediaCodec-状态机"><a href="#MediaCodec-状态机" class="headerlink" title="MediaCodec 状态机"></a>MediaCodec 状态机</h2><p>用一张官方的图来展示 MediaCodec 的声明周期：<br><img src="https://developer.android.com/images/media/mediacodec_states.svg" alt=""></p>
+<blockquote>
+<p>当通过任一工厂方法创建编解码器时，编解码器处于未初始化状态。首先需要通过 configure(…) 完成配置，该方法会将其切换至已配置状态；随后调用 start()，便可进入执行状态。在执行状态下，你就可以通过前文所述的缓冲区队列操作来进行数据处理。</p>
+<p>执行状态包含三个子状态：刷新态（Flushed）、运行态（Running）和流结束态（End-of-Stream）。调用 start() 后，解码器会立即进入刷新子状态，此时它持有所有缓冲区。一旦取出第一个输入缓冲区，编解码器就会切换至运行子状态，这也是其最主要的工作状态。当你向输入缓冲区带入流结束标记并送入队列时，编解码器会切换到流结束子状态。在此状态下，编解码器不再接收新的输入缓冲区，但仍会持续生成输出缓冲区，直到输出端数据流收尾完成。对于解码器而言，只要处于执行状态下，随时都可以调用 flush() 回到刷新子状态。</p>
+<p>调用 stop() 可将编解码器回归未初始化状态，之后可重新对其进行配置。使用完毕后，必须调用 release() 释放编解码器资源。</p>
+</blockquote>
+<p>详细的内容可以查看<a href="https://developer.android.com/reference/android/media/MediaCodec#states">MediaCodec#states</a>一节。</p>
+<h3 id="完整状态图"><a href="#完整状态图" class="headerlink" title="完整状态图"></a>完整状态图</h3><pre class="mermaid">stateDiagram-v2
+    [*] --> Uninitialized: new / createByXxx()
+    Uninitialized --> Configured: configure()
+    Uninitialized --> Released: release()
+
+    Configured --> Uninitialized: reset()
+    Configured --> Released: release()
+    Configured --> Executing: start()
+
+    state Executing {
+        [*] --> Flushed
+        Flushed --> Running: queueInputBuffer()
+        Running --> Running: queue/dequeue
+        Running --> EndOfStream: queueInputBuffer(EOS)
+        EndOfStream --> Flushed: flush()
+        Running --> Flushed: flush()
+        Flushed --> Flushed: flush()
+    }
+
+    Executing --> Uninitialized: stop()
+    Executing --> Released: release()
+    Executing --> Error: 任何调用失败
+
+    Error --> Uninitialized: reset()
+    Error --> Released: release()
+
+    Released --> [*]</pre>
+
+<p>一个被忽略的细节：真正的状态机在 <strong>Native 层</strong> (<code>MediaCodec.cpp</code>)，Java 侧只是个”薄壳”。这也是为什么 <code>MediaCodec.CodecException</code> 会带上 <code>errorCode</code>——错误是从 native 甚至 HAL 层反射上来的。</p>
+<hr>
+<h2 id="一个最小闭环-MediaCodec-示例（解码-渲染到-Surface，同步模式）"><a href="#一个最小闭环-MediaCodec-示例（解码-渲染到-Surface，同步模式）" class="headerlink" title="一个最小闭环 MediaCodec 示例（解码 + 渲染到 Surface，同步模式）"></a>一个最小闭环 MediaCodec 示例（解码 + 渲染到 Surface，同步模式）</h2><p>先给个能跑的代码，脑子里有个整体印象再往下看，后续所有 native 的相关的解释都与下面的代码有关。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> extractor = MediaExtractor().apply &#123; setDataSource(path) &#125;</span><br><span class="line"><span class="keyword">val</span> trackIdx = (<span class="number">0</span> until extractor.trackCount).first &#123;</span><br><span class="line">    extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)!!.startsWith(<span class="string">&quot;video/&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line">extractor.selectTrack(trackIdx)</span><br><span class="line"><span class="keyword">val</span> format = extractor.getTrackFormat(trackIdx)</span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> codec = MediaCodec.createDecoderByType(format.getString(MediaFormat.KEY_MIME)!!).apply &#123;</span><br><span class="line">    configure(format, outputSurface, <span class="literal">null</span>, <span class="number">0</span>)   <span class="comment">// 渲染到 Surface</span></span><br><span class="line">    start()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> info = MediaCodec.BufferInfo()</span><br><span class="line"><span class="keyword">var</span> inputDone = <span class="literal">false</span></span><br><span class="line"><span class="keyword">val</span> startNs = System.nanoTime()</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">    <span class="comment">// 1. 喂输入</span></span><br><span class="line">    <span class="keyword">if</span> (!inputDone) &#123;</span><br><span class="line">        <span class="keyword">val</span> inIdx = codec.dequeueInputBuffer(<span class="number">10_000</span>)</span><br><span class="line">        <span class="keyword">if</span> (inIdx &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">val</span> buf = codec.getInputBuffer(inIdx)!!</span><br><span class="line">            <span class="keyword">val</span> size = extractor.readSampleData(buf, <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">if</span> (size &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                codec.queueInputBuffer(inIdx, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, MediaCodec.BUFFER_FLAG_END_OF_STREAM)</span><br><span class="line">                inputDone = <span class="literal">true</span></span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                codec.queueInputBuffer(inIdx, <span class="number">0</span>, size, extractor.sampleTime, <span class="number">0</span>)</span><br><span class="line">                extractor.advance()</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 取输出</span></span><br><span class="line">    <span class="keyword">when</span> (<span class="keyword">val</span> outIdx = codec.dequeueOutputBuffer(info, <span class="number">10_000</span>)) &#123;</span><br><span class="line">        MediaCodec.INFO_TRY_AGAIN_LATER -&gt; &#123; <span class="comment">/* 继续转 */</span> &#125;</span><br><span class="line">        MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -&gt; &#123;</span><br><span class="line">            Log.d(TAG, <span class="string">&quot;output format = <span class="subst">$&#123;codec.outputFormat&#125;</span>&quot;</span>)</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> -&gt; <span class="keyword">if</span> (outIdx &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="comment">// 按 PTS 精确送显，实现音画同步</span></span><br><span class="line">            <span class="keyword">val</span> renderAtNs = startNs + info.presentationTimeUs * <span class="number">1000L</span></span><br><span class="line">            codec.releaseOutputBuffer(outIdx, renderAtNs)</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != <span class="number">0</span>) <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">codec.stop(); codec.release()</span><br><span class="line">extractor.release()</span><br></pre></td></tr></table></figure>
+<p>不到 40 行，就是一个能用的硬解播放内核。编码器的骨架和它镜像——把 extractor 换成 GPU 画 Surface，把 releaseOutputBuffer 换成 MediaMuxer 写流。</p>
+<hr>
+<h2 id="API-全景：一个生命周期流水线"><a href="#API-全景：一个生命周期流水线" class="headerlink" title="API 全景：一个生命周期流水线"></a>API 全景：一个生命周期流水线</h2><p>把所有常用 API 按调用顺序串起来，就是下面这张流水线：</p>
+<pre class="mermaid">flowchart TB
+    S1["<b>1. 创建</b><br/>createDecoderByType / createEncoderByType<br/>createByCodecName"]
+    S2["<b>2. 注册回调</b>（可选）<br/>setCallback<br/><i>异步模式必调，且必须在 configure 之前</i>"]
+    S3["<b>3. 配置</b><br/>configure(format, surface, crypto, flags)"]
+    S4["<b>4. 启动</b><br/>start()"]
+
+    subgraph LOOP["<b>5. 运行循环</b>"]
+        direction LR
+        IN["<b>喂输入</b><br/>dequeueInputBuffer<br/>↓<br/>getInputBuffer<br/>↓<br/>queueInputBuffer"]
+        OUT["<b>取输出</b><br/>dequeueOutputBuffer<br/>↓<br/>getOutputBuffer<br/>↓<br/>releaseOutputBuffer"]
+        MID["<b>中途可调</b><br/>flush · setParameters<br/>getOutputFormat<br/>signalEndOfInputStream"]
+        IN -.并行.- OUT
+        OUT -.-> MID
+    end
+
+    S6["<b>6. 清理</b><br/>stop() / reset() / release()"]
+
+    S1 --> S2 --> S3 --> S4 --> LOOP --> S6
+
+    classDef phase fill:#E3F2FD,stroke:#1976D2,stroke-width:2px,color:#000
+    classDef ioBox fill:#FFF9C4,stroke:#F9A825,stroke-width:1.5px,color:#000
+    classDef midBox fill:#FFE0B2,stroke:#EF6C00,stroke-width:1.5px,color:#000
+    classDef endBox fill:#FFCDD2,stroke:#C62828,stroke-width:2px,color:#000
+
+    class S1,S2,S3,S4 phase
+    class IN,OUT ioBox
+    class MID midBox
+    class S6 endBox</pre>
+
+<h2 id="Flush-Stop-Reset-Release"><a href="#Flush-Stop-Reset-Release" class="headerlink" title="Flush / Stop / Reset / Release"></a>Flush / Stop / Reset / Release</h2><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th style="text-align:center">丢 buffer</th>
+<th style="text-align:center">保留 configure</th>
+<th style="text-align:center">需要重新 configure</th>
+<th style="text-align:center">之后还能用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>flush()</code></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">✅ 直接 queue</td>
+</tr>
+<tr>
+<td><code>stop()</code></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅ configure + start</td>
+</tr>
+<tr>
+<td><code>reset()</code></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅ configure + start（Error 可调）</td>
+</tr>
+<tr>
+<td><code>release()</code></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">—</td>
+<td style="text-align:center">❌ 对象已死</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="同步-vs-异步模式"><a href="#同步-vs-异步模式" class="headerlink" title="同步 vs 异步模式"></a>同步 vs 异步模式</h2><div class="table-container">
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>同步模式</strong></th>
+<th><strong>异步模式</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>喂/取 buffer</td>
+<td><code>dequeueInputBuffer</code> / <code>dequeueOutputBuffer</code> 轮询</td>
+<td><code>onInputBufferAvailable</code> / <code>onOutputBufferAvailable</code> 回调</td>
+</tr>
+<tr>
+<td>错误处理</td>
+<td>catch <code>CodecException</code></td>
+<td><code>onError(codec, e)</code> 回调</td>
+</tr>
+<tr>
+<td>何时选</td>
+<td>串行逻辑、能接受阻塞循环</td>
+<td>低延迟播放、编码器管线、UI 友好</td>
+</tr>
+<tr>
+<td>共同点</td>
+<td>两种都要处理 <code>INFO_OUTPUT_FORMAT_CHANGED</code>（异步里是 <code>onOutputFormatChanged</code>）</td>
+<td>同</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>规则很硬</strong>：setCallback 之后，同步的 dequeueXxx 就禁用了，调一次抛一次 IllegalStateException。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>回到开篇那句话——<strong>MediaCodec 是一台带缓冲池的状态机</strong>。</p>
+<p><strong>状态机</strong>决定你”现在能调什么”：<code>configure → start → queue/dequeue → stop/release</code> 是主干，<code>flush</code> 在 Executing 内部腾挪，<code>reset/release</code> 负责兜底和终结。调错顺序 → <code>IllegalStateException</code>。<br><strong>缓冲池</strong>决定你”怎么交换数据”：<code>dequeue → get → queue/release</code> 是三步闭环，每租必还，PTS 单调，EOS 用 flag 而不是 API。忘了 release → buffer 枯竭卡死。</p>
+</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css?v=1.0.0"><script type="text/javascript" src="/js/donate.js?v=1.0.0" successtext="复制成功！"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" target="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="https://cdn.julis.wang/blog/img/ali_pay.jpeg"></li><li id="WeChat" qr="https://cdn.julis.wang/blog/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MediaCodec/" rel="tag">MediaCodec</a></li></ul></div><div class="post-nav"><a class="next" href="/2026/04/30/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E5%BC%80%E7%AF%87-%E2%80%94%E2%80%94-%E5%BD%93%E4%BD%A0%E7%82%B9%E4%B8%8B-%E6%92%AD%E6%94%BE-%EF%BC%8C%E7%A9%B6%E7%AB%9F%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F/">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下&quot;播放&quot;，究竟发生了什么？</a></div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:1607637473@qq.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank" style="margin-inline:5px"> <i class="fa fa-vimeo-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">43</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/" style="font-size: 15px;">音视频</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/%E5%A4%A7%E5%AD%A6/" style="font-size: 15px;">大学</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/SDK/" style="font-size: 15px;">SDK</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2026/05/05/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9AJava-%E5%B1%82-API-%E4%B8%8E%E7%8A%B6%E6%80%81%E6%9C%BA/">MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/04/30/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E5%BC%80%E7%AF%87-%E2%80%94%E2%80%94-%E5%BD%93%E4%BD%A0%E7%82%B9%E4%B8%8B-%E6%92%AD%E6%94%BE-%EF%BC%8C%E7%A9%B6%E7%AB%9F%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F/">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下"播放"，究竟发生了什么？</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/">如何构建一个好用的SDK</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/">JPEG压缩之DCT离散余弦变换</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/09/15/H264%E7%A0%81%E6%B5%81%E7%BB%93%E6%9E%84%E7%90%86%E8%A7%A3%E6%95%B4%E7%90%86/">H264码流结构理解整理</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/">手写一个精简版Koin：深入理解依赖注入核心原理</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/07/28/Compose-Multiplatform-%E8%B7%A8%E5%B9%B3%E5%8F%B0%E5%8D%9A%E5%AE%A2%E5%BA%94%E7%94%A8%E5%AE%9E%E8%B7%B5/">[Compose Multiplatform]跨平台博客应用实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/05/16/%E9%B8%BF%E8%92%99-%E5%86%99%E4%BA%86%E4%B8%AA%E5%9F%BA%E4%BA%8EHexo%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%B8%BF%E8%92%99App/">[鸿蒙]写了个基于Hexo博客的鸿蒙App</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/30/KV-%E5%AD%98%E5%82%A8%E4%B9%8Bmmkv/">KV-存储之mmkv</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/03/17/Learn-from-RetroFit/">RetroFit2 源码学习相关</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://k.julis.wang" title="Knowledge Precipitation" target="_blank">Knowledge Precipitation</a><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2026 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+if (search_path.length == 0) {
+  search_path = 'search.xml';
+}
+var path = '/' + search_path;
+searchFunc(path, 'local-search-input', 'local-search-result');
+</script><script type="text/javascript" src="/js/copycode.js?v=1.0.0" successtext="复制成功！"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css?v=1.0.0"><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script><link rel="stylesheet" type="text/css" href="/css/mermaid-viewer.css?v=1.0.0"><script type="text/javascript" src="/js/mermaid-viewer.js?v=1.0.0"></script><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'default',
+  securityLevel: 'loose',
+  flowchart: { useMaxWidth: true },
+  sequence: { useMaxWidth: true },
+  gantt: { useMaxWidth: true },
+  journey: { useMaxWidth: true },
+  class: { useMaxWidth: true },
+  state: { useMaxWidth: true },
+  er: { useMaxWidth: true },
+  pie: { useMaxWidth: true },
+  mindmap: { useMaxWidth: true },
+  gitGraph: { useMaxWidth: true }
+});
+await mermaid.run({ querySelector: 'pre.mermaid' });
+if (window.MermaidViewer) window.MermaidViewer.scan();</script></div></body></html>
