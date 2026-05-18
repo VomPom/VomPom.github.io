@@ -1,34 +1,55 @@
+@charset "UTF-8";
+/* Copy-code button — Kami palette */
 .highlight {
   position: relative;
 }
 
 .btn-copy {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 8px;
+  right: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
   width: 32px;
   height: 24px;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 4px;
+  background: transparent;
+  border: 1px solid transparent;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
   -webkit-appearance: none;
-  color: #808080;
-  -webkit-transition: opacity 0.3s ease-in-out;
-  -o-transition: opacity 0.3s ease-in-out;
-  transition: opacity 0.3s ease-in-out;
+  color: #6b6a64; /* --stone */
+  font-family: "JetBrains Mono", "SF Mono", Consolas, Monaco, monospace;
+  font-size: 11px;
+  -webkit-transition: opacity 0.25s ease-in-out, background 0.15s ease-in-out, color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+  -o-transition: opacity 0.25s ease-in-out, background 0.15s ease-in-out, color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+  transition: opacity 0.25s ease-in-out, background 0.15s ease-in-out, color 0.15s ease-in-out, border-color 0.15s ease-in-out;
   opacity: 0;
 }
 
 .btn-copy:hover {
-  color: #000;
+  color: #1B365D; /* --brand */
+  background: #EEF2F7; /* --brand-tint */
+  border-color: #1B365D;
 }
 
-.highlight:hover .btn-copy {
+.highlight:hover .btn-copy,
+figure.highlight:hover .btn-copy,
+.codeblock:hover .btn-copy {
   opacity: 1;
+}
+
+/* Dark-mode override */
+html[data-dark=true] .btn-copy {
+  color: #a8a59a;
+}
+
+html[data-dark=true] .btn-copy:hover {
+  color: #B6CFE8;
+  background: #1f2a3a;
+  border-color: #8FB3DC;
 }

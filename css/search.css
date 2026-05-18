@@ -1,7 +1,31 @@
+@charset "UTF-8";
+/* Local search dropdown — Kami palette */
 #local-search-result {
   position: absolute;
-  background-color: rgb(255, 255, 255);
+  background-color: #faf9f5; /* --ivory */
+  border: 1px solid #e8e6dc; /* --border */
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   width: 100%;
+  z-index: 50;
+  margin-top: 4px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+#local-search-result ul.search-result-list {
+  margin: 0;
+  padding: 8px 12px;
+  list-style: none;
+}
+
+#local-search-result li {
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e3d8; /* --border-soft */
+}
+
+#local-search-result li:last-child {
+  border-bottom: none;
 }
 
 #sidebar .widget .search-form {
@@ -9,5 +33,15 @@
 }
 
 #sidebar .widget .search-form input {
-  width: auto;
+  width: 100%;
+}
+
+/* Dark-mode override */
+html[data-dark=true] #local-search-result {
+  background-color: #1c1c1a;
+  border-color: #2f2f2c;
+}
+
+html[data-dark=true] #local-search-result li {
+  border-bottom-color: #2f2f2c;
 }

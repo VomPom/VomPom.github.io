@@ -1,22 +1,32 @@
+@charset "UTF-8";
+/* Post copyright box — Kami palette */
 .post-copyright {
   margin: 2em 0 0;
-  padding: 0.5em 1em;
-  border-left: 3px solid #FF1700;
-  background-color: #F9F9F9;
-  font-size: 0.93rem;
-  line-height: 1.6em;
+  padding: 12px 18px;
+  border: 1px solid #e8e6dc; /* --border */
+  border-left: 2px solid #1B365D; /* --brand */
+  background-color: #faf9f5; /* --ivory */
+  font-family: Charter, Georgia, "TsangerJinKai02", "Source Han Serif SC", "Songti SC", serif;
+  font-size: 13.5px;
+  line-height: 1.65em;
   word-break: break-all;
+  border-radius: 0 4px 4px 0;
+  color: #3d3d3a; /* --dark-warm */
 }
 
 .post-copyright p {
-  margin: 0;
+  margin: 0.2em 0;
 }
 
 .post-copyright span {
   display: inline-block;
   width: 5.2em;
-  color: #b5b5b5;
-  font-weight: bold;
+  color: #6b6a64; /* --stone */
+  font-weight: 500;
+  font-family: -apple-system, "Helvetica Neue", "Helvetica", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
 .post-copyright .raw {
@@ -25,17 +35,18 @@
 }
 
 .post-copyright a {
-  color: #808080;
+  color: #1B365D; /* --brand */
   border-bottom: 0;
+  transition: color 0.15s ease;
 }
 
 .post-copyright a:hover {
-  color: #a3d2a3;
+  color: #2D5A8A; /* --brand-light */
   text-decoration: underline;
 }
 
-.post-copyright :hover .fa-clipboard {
-  color: #000;
+.post-copyright:hover .fa-clipboard {
+  color: #1B365D;
 }
 
 .post-copyright .post-url:hover {
@@ -45,9 +56,31 @@
 .post-copyright .copy-path {
   margin-left: 1em;
   width: 1em;
+  color: #6b6a64;
+  cursor: pointer;
+  transition: color 0.15s ease;
 }
 
 .post-copyright .copy-path:hover {
-  color: #808080;
-  cursor: pointer;
+  color: #1B365D;
+}
+
+/* Dark-mode override */
+html[data-dark=true] .post-copyright {
+  background-color: #1c1c1a;
+  border-color: #2f2f2c;
+  border-left-color: #8FB3DC;
+  color: #c8c5b9;
+}
+
+html[data-dark=true] .post-copyright span {
+  color: #8b8880;
+}
+
+html[data-dark=true] .post-copyright a {
+  color: #8FB3DC;
+}
+
+html[data-dark=true] .post-copyright a:hover {
+  color: #B6CFE8;
 }
