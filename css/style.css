@@ -18,9 +18,8 @@
 }
 @font-face {
   font-family: "TsangerJinKai02";
-  /* Loaded from Kami's public repository on jsDelivr CDN to avoid shipping
-     an 18 MB ttf in this repo. Falls back gracefully to system serif. */
-  src: url("https://cdn.jsdelivr.net/gh/tw93/Kami@main/assets/fonts/TsangerJinKai02-W04.ttf") format("truetype");
+  /* Self-hosted subset woff2 to keep payload small while avoiding CDN dependency. */
+  src: url("/fonts/TsangerJinKai02-W04.subset.woff2") format("woff2");
   font-weight: 400 500;
   font-style: normal;
   font-display: swap;
