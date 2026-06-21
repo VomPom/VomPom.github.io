@@ -1,0 +1,342 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="落叶挽歌"><title>MediaCodec 全链路深度剖析(六)：GraphicBuffer 和 BufferQueue | 落叶挽歌</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="https://unpkg.com/normalize.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/pure-min.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="https://unpkg.com/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?' + 'a642bfb7c75afbc4fe68fd942180298b';
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+  })();</script><script type="text/javascript" src="https://unpkg.com/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="https://unpkg.com/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="https://unpkg.com/toastr/build/toastr.min.css"><div class="darkmode-toggle">🌓</div><script>var prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+var toggle = document.querySelector('.darkmode-toggle');
+var html = document.querySelector('html');
+
+html.dataset.dark = localStorage.dark || prefersDarkMode.matches;
+
+toggle.addEventListener('click', () => {
+localStorage.dark = !(html.dataset.dark == 'true');
+html.dataset.dark = localStorage.dark;
+});</script><meta name="generator" content="Hexo 7.3.0"><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">MediaCodec 全链路深度剖析(六)：GraphicBuffer 和 BufferQueue</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="https://k.julis.wang"><i class="fa fa-wikipedia-w"> 知识</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">MediaCodec 全链路深度剖析(六)：GraphicBuffer 和 BufferQueue</h1><div class="post-meta">2026年06月21日<script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 3.3k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 13</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><blockquote>
+<p><strong>系列导读</strong>：第五篇结尾留了一句话——“vendor 解码出来的那块 YUV 内存，物理上一开始就分配在 SurfaceFlinger 的 BufferQueue 里”。这句话里压了两层底层概念：<strong>那块”内存”长什么样</strong>，<strong>那条”BufferQueue”怎么搬运它</strong>。这一篇把这两层拆开讲，分两大部分：</p>
+<ul>
+<li><strong> GraphicBuffer</strong>——Android 图形栈的通用容器，从字段、usage、底层 dma-buf、Gralloc 演进到跨进程语义，一次过完。</li>
+<li><strong> BufferQueue</strong>——所有图形数据流共用的管道，从抽象模型、slot 状态机、典型路径到 fence 同步，逐层下钻。</li>
+</ul>
+<p>把这两层吃透，第七篇 Surface / SurfaceFlinger / HWC 才有底座。</p>
+</blockquote>
+<hr>
+<h1 id="GraphicBuffer"><a href="#GraphicBuffer" class="headerlink" title="GraphicBuffer"></a>GraphicBuffer</h1><p><code>GraphicBuffer</code> 是整个 Android 图形世界的<strong>通用货币</strong>：</p>
+<ul>
+<li>MediaCodec 解码输出 → GraphicBuffer</li>
+<li>GPU 渲染目标 → GraphicBuffer</li>
+<li>SurfaceFlinger 合成输入 → GraphicBuffer</li>
+<li>HWC 扫描输出 → GraphicBuffer</li>
+</ul>
+<p>没有它就没有零拷贝。</p>
+<h2 id="字段构成：四层包装一根-fd"><a href="#字段构成：四层包装一根-fd" class="headerlink" title="字段构成：四层包装一根 fd"></a>字段构成：四层包装一根 fd</h2><figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">GraphicBuffer</span> : <span class="keyword">public</span> ANativeWindowBuffer, <span class="keyword">public</span> RefBase &#123;</span><br><span class="line">    <span class="comment">// 继承自 ANativeWindowBuffer</span></span><br><span class="line">    <span class="comment">// int32_t  width;</span></span><br><span class="line">    <span class="comment">// int32_t  height;</span></span><br><span class="line">    <span class="comment">// int32_t  stride;</span></span><br><span class="line">    <span class="comment">// int32_t  format;             // HAL_PIXEL_FORMAT_YCbCr_420_SP 等</span></span><br><span class="line">    <span class="comment">// int32_t  layerCount;</span></span><br><span class="line">    <span class="comment">// uint64_t usage;</span></span><br><span class="line">    <span class="comment">// native_handle_t* handle;     // 真正承载物理内存</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">native_handle</span> &#123;</span><br><span class="line">    <span class="type">int</span> version;</span><br><span class="line">    <span class="type">int</span> numFds;     <span class="comment">// 通常 1，指向 dma-buf 的 fd，dma-buf后文会讲</span></span><br><span class="line">    <span class="type">int</span> numInts;    <span class="comment">// 元数据整数个数</span></span><br><span class="line">    <span class="type">int</span> data[<span class="number">0</span>];    <span class="comment">// [fd_list..., int_list...]</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>第五篇里反复提到的”<code>C2Block</code>持有的<code>native_handle</code>“和这里的<code>native_handle</code>是同一个东西——Codec2 那一侧把它装在<code>C2Buffer</code>里看，图形这一侧把它装在<code>GraphicBuffer</code>里看，两边只是不同的视图，物理内存共用。</p>
+<h2 id="usage：分配时就确定访问权限"><a href="#usage：分配时就确定访问权限" class="headerlink" title="usage：分配时就确定访问权限"></a>usage：分配时就确定访问权限</h2><p><code>GraphicBuffer</code>分配前必须指定 usage。它决定<strong>这块内存分配在哪个 heap、谁能访问、谁不能</strong>。常见 flag：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GRALLOC_USAGE_SW_READ_OFTEN</code> / <code>RARELY</code></td>
+<td>CPU 读（对性能有要求）</td>
+</tr>
+<tr>
+<td><code>GRALLOC_USAGE_SW_WRITE_OFTEN</code> / <code>RARELY</code></td>
+<td>CPU 写</td>
+</tr>
+<tr>
+<td><code>GRALLOC_USAGE_HW_TEXTURE</code></td>
+<td>GPU 作为纹理采样</td>
+</tr>
+<tr>
+<td><code>GRALLOC_USAGE_HW_RENDER</code></td>
+<td>GPU 作为渲染目标</td>
+</tr>
+<tr>
+<td><code>GRALLOC_USAGE_HW_VIDEO_ENCODER</code></td>
+<td>VPU 读（编码器输入）</td>
+</tr>
+<tr>
+<td><code>GRALLOC_USAGE_HW_COMPOSER</code></td>
+<td>HWC 可扫描</td>
+</tr>
+<tr>
+<td><code>GRALLOC_USAGE_PROTECTED</code></td>
+<td>DRM 保护内存（CPU 不可读）</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>usage 是分配前对消费者列表的预声明。Gralloc 拿到 usage 后会反查这种组合的访问者需要什么样的内存——是不是物理连续、要不要 IOMMU 映射、是不是走 secure heap。错误的 usage 会直接导致 GPU 采样失败、HWC 拒绝扫描，或者 secure 路径下解码出全黑帧。</p>
+<p>三种最常见的组合：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">// MediaCodec 解码输出（送 GL 做纹理 + 送 HWC 显示）</span></span><br><span class="line">usage = GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_COMPOSER;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 编码器输入（GL 渲染 + VPU 读）</span></span><br><span class="line">usage = GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_HW_VIDEO_ENCODER;</span><br><span class="line"></span><br><span class="line"><span class="comment">// CPU 加工的 buffer</span></span><br><span class="line">usage = GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE;</span><br></pre></td></tr></table></figure>
+<p>第一种就是第五篇<code>mChannel-&gt;setSurface(surface)</code>那一步背后会用到的 usage——既要给 GL/HWC 合成，又要让 VPU 直接写进来。</p>
+<h2 id="底层：从-ION-到-DMA-BUF"><a href="#底层：从-ION-到-DMA-BUF" class="headerlink" title="底层：从 ION 到 DMA-BUF"></a>底层：从 ION 到 DMA-BUF</h2><p><code>Gralloc</code>只是分配壳子，真正出内存的人在底下：</p>
+<pre class="mermaid">flowchart TB
+    APP["用户态<br/>new GraphicBuffer(...)"]
+    GR["Gralloc HAL<br/>allocate(width, height, format, usage)"]
+    SEL{"usage<br/>是否带 PROTECTED?"}
+    SH["secure-heap"]
+    NH["system-heap<br/>(普通 DMA 内存)"]
+    IOCTL["ioctl(heap_fd,<br/>DMA_HEAP_IOCTL_ALLOC)"]
+    DMA[("内核 struct dma_buf")]
+    FD["返回 dma-buf fd"]
+    HANDLE["native_handle_create<br/>(打包 fd + 元数据)"]
+
+    APP --> GR --> SEL
+    SEL -- 是 --> SH --> IOCTL
+    SEL -- 否 --> NH --> IOCTL
+    IOCTL --> DMA --> FD --> HANDLE</pre>
+
+<p>两套底层分配器先后登场过：</p>
+<ul>
+<li><strong>ION</strong>（Android 12 之前的主流）：Android 最早的 DMA 内存分配器，提供 system / contig / carveout / secure 几个 heap，支持跨进程共享和 IOMMU 映射。</li>
+<li><strong>DMA-BUF heaps</strong>（Android 12+ 标准）：Linux 内核主线的统一 DMA 机制，ION 已经从内核主线移除，新设备一律走 DMA-BUF。</li>
+</ul>
+<p>用户态接口看起来很像（都是 ioctl + fd），但内核侧实现完全不同。简化后的 Gralloc allocate 逻辑：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">allocate</span><span class="params">(width, height, format, usage)</span> </span>&#123;</span><br><span class="line">    <span class="type">const</span> <span class="type">char</span>* heap = (usage &amp; PROTECTED) ? <span class="string">&quot;secure-heap&quot;</span> : <span class="string">&quot;system-heap&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> heap_fd = <span class="built_in">open</span>(heap, O_RDWR);</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">dma_heap_allocation_data</span> data = &#123; .len = size, .fd_flags = O_CLOEXEC &#125;;</span><br><span class="line">    <span class="built_in">ioctl</span>(heap_fd, DMA_HEAP_IOCTL_ALLOC, &amp;data);</span><br><span class="line"></span><br><span class="line">    <span class="type">native_handle_t</span>* h = <span class="built_in">native_handle_create</span>(<span class="number">1</span>, num_ints);</span><br><span class="line">    h-&gt;data[<span class="number">0</span>] = data.fd;</span><br><span class="line">    <span class="keyword">return</span> h;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>usage 在这一步决定开哪个 heap——secure 内容必须走 secure heap（CPU 不可见），普通帧走 system heap。这是 usage 标志被真实使用的地方。</p>
+<h2 id="跨进程：fd-数值不同，物理内存同一块"><a href="#跨进程：fd-数值不同，物理内存同一块" class="headerlink" title="跨进程：fd 数值不同，物理内存同一块"></a>跨进程：fd 数值不同，物理内存同一块</h2><p><code>GraphicBuffer</code>跨进程时传的不是 C++ 对象，而是里面的<code>native_handle_t</code>。Binder 走 fd 时内核会在目标进程里复制出新 fd——fd 数值变了，但内核里指向的是同一个<code>struct dma_buf</code>，物理内存同一块。</p>
+<pre class="mermaid">flowchart LR
+    subgraph P1["App 进程"]
+        A["GraphicBuffer<br/>handle->data[0] = 42"]
+    end
+    subgraph P2["vendor 进程"]
+        B["GraphicBuffer<br/>handle->data[0] = 78"]
+    end
+    DMA[("内核 dma_buf 对象<br/>(同一块物理内存)")]
+    A -. Binder dup fd .-> B
+    A --> DMA
+    B --> DMA</pre>
+
+<p>对应 Parcel 接口：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 发送端</span></span><br><span class="line">parcel-&gt;<span class="built_in">writeNativeHandle</span>(buffer.handle);   <span class="comment">// fd 由 Binder 自动 dup</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 接收端</span></span><br><span class="line"><span class="type">native_handle_t</span>* h = parcel-&gt;<span class="built_in">readNativeHandle</span>();</span><br><span class="line"><span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">GraphicBuffer</span>(w, h_, fmt, usage, h, ...);</span><br></pre></td></tr></table></figure>
+<p>这就是 Android 图形栈零拷贝的物理底座。fd 是门票，门票编号可以无数次复制，但门内的物理内存只此一份。第五篇里讲的<code>C2Buffer</code>跨进程、<code>BufferPool</code>跨进程引用计数，根上都是这一套机制。</p>
+<h1 id="BufferQueue-所有图形数据流共用的管道"><a href="#BufferQueue-所有图形数据流共用的管道" class="headerlink" title="BufferQueue 所有图形数据流共用的管道"></a>BufferQueue 所有图形数据流共用的管道</h1><p>知道了”容器”长什么样，下一个问题是——这些容器如何从一个角色流到下一个？答案是 BufferQueue。</p>
+<p>所有 Android 图形数据流动都经过 BufferQueue：</p>
+<ul>
+<li>Camera 出帧 → BufferQueue → App</li>
+<li>GL 渲染 → BufferQueue → SurfaceFlinger</li>
+<li>MediaCodec 解码 → BufferQueue → SurfaceFlinger</li>
+<li>GL 渲染 → BufferQueue → MediaCodec 编码（Input Surface）</li>
+<li>SurfaceFlinger 合成 → BufferQueue → DPU</li>
+</ul>
+<p>吃透 BufferQueue，后面所有图形问题都不慌。</p>
+<h2 id="抽象模型：两个角色-一组-slot"><a href="#抽象模型：两个角色-一组-slot" class="headerlink" title="抽象模型：两个角色 + 一组 slot"></a>抽象模型：两个角色 + 一组 slot</h2><p>BufferQueue 的抽象只有两个角色——Producer（写数据的）和 Consumer（读数据的）——中间夹着一组<code>GraphicBuffer</code>槽位：</p>
+<pre class="mermaid">flowchart LR
+    subgraph Producer
+        P1["GL / MediaCodec / Camera"]
+    end
+    subgraph BufferQueue
+        SLOTS["Slots[MAX_BUFFERS=64]"]
+        QUEUE["mQueue (FIFO)"]
+    end
+    subgraph Consumer
+        C1["SurfaceFlinger /<br/>ImageReader /<br/>SurfaceTexture"]
+    end
+    P1 -- "dequeueBuffer / queueBuffer" --> SLOTS
+    SLOTS --> QUEUE
+    QUEUE -- "acquireBuffer / releaseBuffer" --> C1</pre>
+
+<p>接口本身非常对称：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 生产者侧</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">IGraphicBufferProducer</span> &#123;</span><br><span class="line">    <span class="built_in">dequeueBuffer</span>(out slot, ...);      <span class="comment">// 申请空闲 slot</span></span><br><span class="line">    <span class="built_in">requestBuffer</span>(slot, out buffer);   <span class="comment">// 获取 slot 对应的 GraphicBuffer</span></span><br><span class="line">    <span class="built_in">queueBuffer</span>(slot, input, ...);     <span class="comment">// 提交填好的 buffer</span></span><br><span class="line">    <span class="built_in">cancelBuffer</span>(slot, ...);           <span class="comment">// 放弃（不提交，归还 slot）</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 消费者侧</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">IGraphicBufferConsumer</span> &#123;</span><br><span class="line">    <span class="built_in">acquireBuffer</span>(out buffer, ...);    <span class="comment">// 拉取一帧</span></span><br><span class="line">    <span class="built_in">releaseBuffer</span>(slot, fence);        <span class="comment">// 用完归还</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>Producer 走”申请-填充-提交”，Consumer 走”获取-使用-释放”，两条路在同一组 slot 上交替转手。</p>
+<h2 id="Slot-状态机"><a href="#Slot-状态机" class="headerlink" title="Slot 状态机"></a>Slot 状态机</h2><p>每个 slot 当下处于一个明确状态。一帧的”一生”就是在这个状态机上转一圈：</p>
+<pre class="mermaid">stateDiagram-v2
+    [*] --> FREE
+    FREE --> DEQUEUED: dequeueBuffer<br/>(producer 申请)
+    DEQUEUED --> QUEUED: queueBuffer<br/>(producer 提交)
+    DEQUEUED --> FREE: cancelBuffer<br/>(producer 放弃)
+    QUEUED --> ACQUIRED: acquireBuffer<br/>(consumer 拿走)
+    ACQUIRED --> FREE: releaseBuffer<br/>(consumer 释放)</pre>
+
+<p>四个状态归属：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>含义</th>
+<th>持有者</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FREE</td>
+<td>空闲</td>
+<td>BufferQueue</td>
+</tr>
+<tr>
+<td>DEQUEUED</td>
+<td>生产者申请到，待填充</td>
+<td>Producer</td>
+</tr>
+<tr>
+<td>QUEUED</td>
+<td>已提交，等待消费</td>
+<td>BufferQueue 内部队列</td>
+</tr>
+<tr>
+<td>ACQUIRED</td>
+<td>消费者持有中</td>
+<td>Consumer</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>整张图压成一个核心约束：<strong>一块 slot 同时只能有一个所有者</strong>。Producer 申请它就脱离 BufferQueue 掌控，提交回去 BufferQueue 又拿到所有权，Consumer 拉走再脱离一次。两端永远不会同时改写同一块物理内存。</p>
+<p>底下的数据结构相当朴素：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">BufferQueueCore</span> &#123;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">BufferItem</span> &#123;</span><br><span class="line">        sp&lt;GraphicBuffer&gt; mGraphicBuffer;</span><br><span class="line">        sp&lt;Fence&gt; mFence;</span><br><span class="line">        <span class="type">int64_t</span> mTimestamp;</span><br><span class="line">        android_dataspace mDataSpace;</span><br><span class="line">        Rect mCrop;</span><br><span class="line">        <span class="type">int</span> mTransform;</span><br><span class="line">        <span class="type">uint32_t</span> mScalingMode;</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">BufferSlot</span> &#123;</span><br><span class="line">        sp&lt;GraphicBuffer&gt; mGraphicBuffer;</span><br><span class="line">        <span class="keyword">enum</span> <span class="title class_">State</span> &#123; FREE, DEQUEUED, QUEUED, ACQUIRED, SHARED &#125;;</span><br><span class="line">        State mBufferState;</span><br><span class="line">    &#125;;</span><br><span class="line">    BufferSlot mSlots[NUM_BUFFER_SLOTS];   <span class="comment">// 最多 64</span></span><br><span class="line">    std::list&lt;BufferItem&gt; mQueue;          <span class="comment">// QUEUED 队列</span></span><br><span class="line">    Mutex mMutex;</span><br><span class="line">    Condition mDequeueCondition;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>每个 slot 持有一个<code>GraphicBuffer</code>和它的状态。<code>mQueue</code>是 FIFO 列表，记的是已经 QUEUED 但还没被 Consumer 拉走的 item——Consumer 调<code>acquireBuffer</code>按顺序从这里出队。</p>
+<h2 id="一帧从-MediaCodec-到-SurfaceFlinger-的实际走法"><a href="#一帧从-MediaCodec-到-SurfaceFlinger-的实际走法" class="headerlink" title="一帧从 MediaCodec 到 SurfaceFlinger 的实际走法"></a>一帧从 MediaCodec 到 SurfaceFlinger 的实际走法</h2><p>把第四、第五篇的输出路径接进来，对照接口看一次端到端时序：</p>
+<pre class="mermaid">sequenceDiagram
+    participant V as Vendor (VPU)
+    participant P as Producer 端<br/>(CCodecBufferChannel)
+    participant BQ as BufferQueue
+    participant SF as Consumer 端<br/>(SurfaceFlinger)
+    participant G as GPU
+
+    V->>V: 解码一帧 YUV<br/>(目标内存来自 BUFFERQUEUE pool)
+    V->>V: 触发 acquireFence
+    P->>BQ: dequeueBuffer(&slot, &fence, ...)
+    P->>BQ: queueBuffer(slot, QueueBufferInput{<br/>timestamp, dataSpace, transform,<br/>acquireFence, hdrMetadata})
+    BQ->>BQ: slot 转 QUEUED
+    BQ->>SF: 唤醒 Consumer (onFrameAvailable)
+    SF->>BQ: acquireBuffer(&item)
+    BQ->>SF: 返回 BufferItem (含 acquireFence)
+    SF->>G: 合成命令 + wait(acquireFence)
+    G->>G: 等 fence signal 后采样 buffer
+    G->>SF: 触发 releaseFence
+    SF->>BQ: releaseBuffer(slot, releaseFence)
+    BQ->>P: slot 回到 FREE (供下一次 dequeue 等 releaseFence)</pre>
+
+<p>生产者侧实际写法：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 1. 申请空闲 slot（同步模式没空 slot 会阻塞）</span></span><br><span class="line">mProducer-&gt;<span class="built_in">dequeueBuffer</span>(&amp;slot, &amp;fence, w, h, format, usage,</span><br><span class="line">                         &amp;bufferAge, &amp;outTimestamps);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. slot 对应的 buffer 第一次出现时，需要 requestBuffer 拿本地视图</span></span><br><span class="line">sp&lt;GraphicBuffer&gt; gbuf;</span><br><span class="line"><span class="keyword">if</span> (slot 的 buffer 变了) &#123;</span><br><span class="line">    mProducer-&gt;<span class="built_in">requestBuffer</span>(slot, &amp;gbuf);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 填充（Codec2 路径下，vendor 解码时就已写入这块 slot）</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. 提交</span></span><br><span class="line"><span class="function">QueueBufferInput <span class="title">input</span><span class="params">(timestampNs, isAutoTimestamp, dataSpace, crop,</span></span></span><br><span class="line"><span class="params"><span class="function">                       scalingMode, transform,</span></span></span><br><span class="line"><span class="params"><span class="function">                       fence <span class="comment">/* acquireFence */</span>)</span></span>;</span><br><span class="line">input.<span class="built_in">setHdrMetadata</span>(hdr);</span><br><span class="line"></span><br><span class="line">QueueBufferOutput output;</span><br><span class="line">mProducer-&gt;<span class="built_in">queueBuffer</span>(slot, input, &amp;output);</span><br></pre></td></tr></table></figure>
+<p>这就是第五篇结尾说的”BufferChannel<code>renderOutputBuffer</code>把它<code>queueBuffer</code>给 BufferQueue 时 Consumer 直接 latch”——对应的接口就是这几行。这块 slot 的物理内存早在 vendor 解码时已经写完，App 进程的<code>renderOutputBuffer</code>没有任何拷贝，只在协议层走一遍<code>queueBuffer</code>。</p>
+<p>消费者侧（SurfaceFlinger 把这帧 latch 到 Layer 上）：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line">BufferQueue::BufferItem item;</span><br><span class="line"><span class="type">status_t</span> err = mConsumer-&gt;<span class="built_in">acquireBuffer</span>(&amp;item, <span class="comment">/*presentWhen*/</span> <span class="number">0</span>);</span><br><span class="line"><span class="keyword">if</span> (err == OK) &#123;</span><br><span class="line">    mActiveBuffer  = item.mGraphicBuffer;</span><br><span class="line">    mAcquiredFence = item.mFence;   <span class="comment">// acquireFence，GPU 读取前要 wait</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 用完后</span></span><br><span class="line">mConsumer-&gt;<span class="built_in">releaseBuffer</span>(slot, releaseFence);   <span class="comment">// SF 这边读完的信号</span></span><br></pre></td></tr></table></figure>
+<p><code>releaseFence</code>传回去后，Producer 下一轮要复写这块 slot 时会等这个 fence。整把循环就接上了。</p>
+<h2 id="fence：流水线全程零-CPU-等待"><a href="#fence：流水线全程零-CPU-等待" class="headerlink" title="fence：流水线全程零 CPU 等待"></a>fence：流水线全程零 CPU 等待</h2><p>BufferQueue 接口里反复出现两个 fence：</p>
+<ul>
+<li><strong>Acquire Fence</strong>（Producer → Consumer）：填充完成信号。Consumer 用前要 wait。</li>
+<li><strong>Release Fence</strong>（Consumer → Producer）：消费完成信号。Producer 复写前要 wait。</li>
+</ul>
+<p>两个 fence 加起来构成一帧 buffer 在两端之间的完整同步握手：</p>
+<pre class="mermaid">sequenceDiagram
+    participant P as Producer (VPU)
+    participant BQ as BufferQueue
+    participant C as Consumer (GPU 合成)
+
+    P->>BQ: queueBuffer(slot, acquireFence)
+    Note over P: acquireFence 由 VPU 解码完成触发
+    BQ->>C: acquireBuffer(item) 含 acquireFence
+    C->>C: GPU 命令流插入 wait(acquireFence)
+    C->>C: GPU 异步渲染
+    C->>BQ: releaseBuffer(slot, releaseFence)
+    Note over C: releaseFence 由 GPU 合成完成触发
+    BQ->>P: 下次 dequeueBuffer 返回 releaseFence
+    P->>P: VPU 入队前 wait(releaseFence)</pre>
+
+<p>整张图的关键是<strong>没有任何一处 CPU 主动<code>wait()</code>阻塞</strong>。Producer 提交 acquireFence 后立刻返回，Consumer 拿到 fence 不是马上等，而是把 wait 操作插进 GPU 命令流——GPU 内部排队等 VPU 信号，VPU 那边硬件触发 fence 时 GPU 命令流自然解锁。Release 方向也一样，VPU 收到 releaseFence 是丢给硬件去等，CPU 这条线一刻不停。</p>
+<p>硬件流水线全程零 CPU 等待的本质在这里。BufferQueue 不光是数据通道，也是 fence 的中转站——所有跨硬件的时序契约都借<code>queueBuffer / acquireBuffer / releaseBuffer</code>这三个接口顺手传递。</p>
+<h2 id="QueueBufferInput：一次-queue-携带的全部信息"><a href="#QueueBufferInput：一次-queue-携带的全部信息" class="headerlink" title="QueueBufferInput：一次 queue 携带的全部信息"></a>QueueBufferInput：一次 queue 携带的全部信息</h2><p>最后看<code>queueBuffer</code>这一次调用到底带了什么。<code>QueueBufferInput</code>几乎把一帧的所有元信息都囊括了：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">QueueBufferInput</span> &#123;</span><br><span class="line">    <span class="type">int64_t</span> timestamp;                 <span class="comment">// PTS (ns)</span></span><br><span class="line">    <span class="type">bool</span> isAutoTimestamp;</span><br><span class="line">    android_dataspace dataSpace;       <span class="comment">// 色彩空间（BT.709 / BT.2020 / sRGB）</span></span><br><span class="line">    Rect crop;                         <span class="comment">// 有效区域</span></span><br><span class="line">    <span class="type">int</span> scalingMode;                   <span class="comment">// NATIVE_WINDOW_SCALING_MODE_*</span></span><br><span class="line">    <span class="type">uint32_t</span> transform;                <span class="comment">// 旋转 / 镜像</span></span><br><span class="line">    sp&lt;Fence&gt; fence;                   <span class="comment">// acquire fence</span></span><br><span class="line">    Region surfaceDamage;              <span class="comment">// 改动区域（部分合成用）</span></span><br><span class="line">    HdrMetadata hdrMetadata;           <span class="comment">// HDR10 / HLG / Dolby Vision</span></span><br><span class="line">    sp&lt;GraphicBuffer&gt; graphicBuffer;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>把这些字段对应到第四、第五篇的链路：</p>
+<ul>
+<li><code>timestamp</code>来自<code>C2Work</code>的<code>input_ordinal.timestamp</code>，一路 forward 过来</li>
+<li><code>dataSpace</code>是 vendor 解码时根据 SPS/VUI 推出来的色彩空间</li>
+<li><code>transform</code>对应<code>MediaFormat</code>里的<code>KEY_ROTATION</code></li>
+<li><code>fence</code>是上一节那条 acquire fence</li>
+<li><code>hdrMetadata</code>在 Gralloc 4.0 之前必须走的 side channel，4.0 之后可以走<code>GraphicBuffer</code>元数据通道，接口本身保留兼容</li>
+</ul>
+<p><code>CCodecBufferChannel::renderOutputBuffer</code>做的事，就是把这些字段从 Codec2 的<code>C2Buffer + C2Info</code>体系翻译过来，组装成一个<code>QueueBufferInput</code>扔过去。SurfaceFlinger 拿到之后，把这些信息一路传给 RenderEngine 或 HWC——颜色空间转换、HDR tonemap、旋转/裁剪全靠这一坨字段。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>这一篇按”容器 + 管道”两层把 MediaCodec 输出端拆完：</p>
+<p><strong>GraphicBuffer 部分</strong>：</p>
+<ul>
+<li>它是 Android 图形栈的通用容器，里面包元数据，外面套引用计数，最内层是一根<code>native_handle_t</code>里的 dma-buf fd。MediaCodec / GPU / SurfaceFlinger / HWC 全都只认它。</li>
+<li>usage flag 是分配前对访问者的预声明——决定走哪个 heap、能不能 CPU 读、能不能 HWC 扫描，写错直接报废。MediaCodec 输出走的是<code>HW_TEXTURE | HW_COMPOSER</code>。</li>
+<li>底层从 ION 切到 DMA-BUF 是一次平滑替换。用户态接口几乎没变，内核换了实现。Gralloc 4.0 之后元数据并入 buffer 本身，HDR 元数据不再需要单独 side channel。</li>
+<li>跨进程靠 fd dup——fd 数值各进程不同，但内核里指向同一个<code>dma_buf</code>，物理内存同一块。这是零拷贝的物理底座。</li>
+</ul>
+<p><strong>BufferQueue 部分</strong>：</p>
+<ul>
+<li>它是所有图形数据流的共用管道。Camera / GL / MediaCodec / SurfaceFlinger 互通走的都是它。</li>
+<li>slot 在 FREE / DEQUEUED / QUEUED / ACQUIRED 四态间轮转，一块物理内存同时只有一个所有者。</li>
+<li>同步模式保不丢帧但可能阻塞；异步模式保不阻塞但丢最旧那帧。MediaCodec Output 默认开足 5-12 块 slot 喂硬件 VPU pipeline。</li>
+<li>acquireFence / releaseFence 把零 CPU 等待做成机制——Producer/Consumer 之间所有跨硬件的时序契约都靠 fence 传递，CPU 全程只做转手，等待发生在 GPU/VPU 命令流内部。</li>
+</ul>
+<p>回到第五篇结尾那句话——vendor 解码出来的 YUV”物理上一开始就分配在 SurfaceFlinger 的 BufferQueue 里”——展开成一句更完整的话：</p>
+<p>vendor 进程通过<code>BUFFERQUEUE</code>类型的<code>C2BlockPool</code>，向 SurfaceFlinger 的 BufferQueue 调一次<code>dequeueBuffer</code>，拿到一块 slot 对应的<code>GraphicBuffer</code>；这块<code>GraphicBuffer</code>底层是一根 dma-buf fd，vendor 那边的<code>C2Buffer</code>、App 这边的<code>GraphicBuffer</code>、SurfaceFlinger 那边的<code>GraphicBuffer</code>，是同一块物理内存在三个进程里的三个视图。VPU 解码完成时挂一根 acquire fence，App 这边只走协议把 slot 和 fence 移交一下，SurfaceFlinger 拿到后用 fence 安排 GPU 等硬件信号——整条链上没人拷过一字节。</p>
+</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css?v=1.0.0"><script type="text/javascript" src="/js/donate.js?v=1.0.0" successtext="复制成功！"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" target="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="https://cdn.julis.wang/blog/img/ali_pay.jpeg"></li><li id="WeChat" qr="https://cdn.julis.wang/blog/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MediaCodec/" rel="tag">MediaCodec</a></li></ul></div><div class="post-nav"><a class="next" href="/2026/06/01/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%BA%94-%EF%BC%9A%E4%BB%8E-C2Work-%E5%88%B0-vendor-%E8%BF%9B%E7%A8%8B/">MediaCodec 全链路深度剖析(五)：从 C2Work 到 vendor 进程</a></div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:1607637473@qq.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank" style="margin-inline:5px"> <i class="fa fa-vimeo-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">44</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/" style="font-size: 15px;">音视频</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/%E5%A4%A7%E5%AD%A6/" style="font-size: 15px;">大学</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/SDK/" style="font-size: 15px;">SDK</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2026/06/21/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%85%AD-%EF%BC%9AGraphicBuffer-%E5%92%8C-BufferQueue/">MediaCodec 全链路深度剖析(六)：GraphicBuffer 和 BufferQueue</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/06/01/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%BA%94-%EF%BC%9A%E4%BB%8E-C2Work-%E5%88%B0-vendor-%E8%BF%9B%E7%A8%8B/">MediaCodec 全链路深度剖析(五)：从 C2Work 到 vendor 进程</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/11/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%9B%9B-%EF%BC%9ACCodec-%E4%B8%8E-BufferChannel-%E7%9A%84%E5%88%86%E5%B7%A5/">MediaCodec 全链路深度剖析(四)：CCodec 与 BufferChannel 的分工</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/10/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%B8%89-%EF%BC%9ANative-%E6%B6%88%E6%81%AF%E6%9C%BA%E5%88%B6%E4%B8%8E-JNI-%E6%A1%A5%E6%8E%A5/">MediaCodec 全链路深度剖析(三)：Native 消息机制与 JNI 桥接</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/05/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9AJava-%E5%B1%82-API-%E4%B8%8E%E7%8A%B6%E6%80%81%E6%9C%BA/">MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/04/30/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E5%BC%80%E7%AF%87-%E2%80%94%E2%80%94-%E5%BD%93%E4%BD%A0%E7%82%B9%E4%B8%8B-%E6%92%AD%E6%94%BE-%EF%BC%8C%E7%A9%B6%E7%AB%9F%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F/">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下"播放"，究竟发生了什么？</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/">如何构建一个好用的SDK</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/">JPEG压缩之DCT离散余弦变换</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/09/15/H264%E7%A0%81%E6%B5%81%E7%BB%93%E6%9E%84%E7%90%86%E8%A7%A3%E6%95%B4%E7%90%86/">H264码流结构理解整理</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/08/25/Koin-%E6%BA%90%E7%A0%81%E7%90%86%E8%A7%A3%E7%9B%B8%E5%85%B3/">手写一个精简版Koin：深入理解依赖注入核心原理</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://k.julis.wang" title="Knowledge Precipitation" target="_blank">Knowledge Precipitation</a><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2026 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/VomPom/kami-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/vompom"> Vompom.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+if (search_path.length == 0) {
+  search_path = 'search.xml';
+}
+var path = '/' + search_path;
+searchFunc(path, 'local-search-input', 'local-search-result');
+</script><script type="text/javascript" src="/js/copycode.js?v=1.0.0" successtext="复制成功！"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css?v=1.0.0"><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script><link rel="stylesheet" type="text/css" href="/css/mermaid-viewer.css?v=1.0.0"><script type="text/javascript" src="/js/mermaid-viewer.js?v=1.0.0"></script><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs';
+// Kami palette (parchment + ink-blue)
+const kamiTheme = {
+  fontFamily: 'Charter, "TsangerJinKai02", "Source Han Serif SC", "Songti SC", Georgia, serif',
+  fontSize:           '14px',
+  primaryColor:       '#EEF2F7',  /* brand-tint */
+  primaryBorderColor: '#1B365D',  /* brand */
+  primaryTextColor:   '#141413',  /* near-black */
+  secondaryColor:     '#faf9f5',  /* ivory */
+  secondaryBorderColor:'#e8e6dc', /* border */
+  secondaryTextColor: '#3d3d3a',
+  tertiaryColor:      '#f5f4ed',  /* parchment */
+  tertiaryBorderColor:'#e5e3d8',
+  tertiaryTextColor:  '#3d3d3a',
+  lineColor:          '#504e49',  /* olive */
+  textColor:          '#141413',
+  background:         '#f5f4ed',
+  mainBkg:            '#faf9f5',
+  secondBkg:          '#EEF2F7',
+  tertiaryBkg:        '#E4ECF5',
+  nodeBorder:         '#1B365D',
+  clusterBkg:         '#faf9f5',
+  clusterBorder:      '#e8e6dc',
+  edgeLabelBackground:'#f5f4ed',
+  titleColor:         '#141413',
+  labelTextColor:     '#141413',
+  noteBkgColor:       '#faf9f5',
+  noteBorderColor:    '#e8e6dc',
+  noteTextColor:      '#3d3d3a',
+  activationBkgColor: '#EEF2F7',
+  activationBorderColor:'#1B365D',
+  sequenceNumberColor:'#faf9f5',
+  actorBkg:           '#faf9f5',
+  actorBorder:        '#1B365D',
+  actorTextColor:     '#141413',
+  actorLineColor:     '#504e49',
+  signalColor:        '#3d3d3a',
+  signalTextColor:    '#141413',
+  labelBoxBkgColor:   '#EEF2F7',
+  labelBoxBorderColor:'#1B365D',
+  altBackground:      '#faf9f5',
+  gridColor:          '#e5e3d8'
+};
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  themeVariables: kamiTheme,
+  securityLevel: 'loose',
+  flowchart: { useMaxWidth: true, curve: 'basis', htmlLabels: true },
+  sequence: { useMaxWidth: true },
+  gantt: { useMaxWidth: true },
+  journey: { useMaxWidth: true },
+  class: { useMaxWidth: true },
+  state: { useMaxWidth: true },
+  er: { useMaxWidth: true },
+  pie: { useMaxWidth: true },
+  mindmap: { useMaxWidth: true },
+  gitGraph: { useMaxWidth: true }
+});
+await mermaid.run({ querySelector: 'pre.mermaid' });
+if (window.MermaidViewer) window.MermaidViewer.scan();</script></div></body></html>
