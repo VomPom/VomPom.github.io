@@ -1,0 +1,275 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="落叶挽歌"><title>MediaCodec 全链路深度剖析(七)：SurfaceFlinger、HWC 与 Android 显示管线 | 落叶挽歌</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="https://unpkg.com/normalize.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/pure-min.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="https://unpkg.com/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?' + 'a642bfb7c75afbc4fe68fd942180298b';
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+  })();</script><script type="text/javascript" src="https://unpkg.com/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="https://unpkg.com/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="https://unpkg.com/toastr/build/toastr.min.css"><div class="darkmode-toggle">🌓</div><script>var prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+var toggle = document.querySelector('.darkmode-toggle');
+var html = document.querySelector('html');
+
+html.dataset.dark = localStorage.dark || prefersDarkMode.matches;
+
+toggle.addEventListener('click', () => {
+localStorage.dark = !(html.dataset.dark == 'true');
+html.dataset.dark = localStorage.dark;
+});</script><meta name="generator" content="Hexo 7.3.0"><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">MediaCodec 全链路深度剖析(七)：SurfaceFlinger、HWC 与 Android 显示管线</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="https://k.julis.wang"><i class="fa fa-wikipedia-w"> 知识</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">MediaCodec 全链路深度剖析(七)：SurfaceFlinger、HWC 与 Android 显示管线</h1><div class="post-meta">2026年07月02日<span> | </span><span class="category"><a href="/categories/technology/">技术文章</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 5k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 20</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><blockquote>
+<p><strong>系列导读</strong>：第六篇把「容器 GraphicBuffer」和「管道 BufferQueue」讲完了，MediaCodec 解码出来的 YUV 已经躺在 SurfaceFlinger 的一个 slot 里、fence 也挂好了。接下来的问题是——<strong>这块 Buffer 是怎么变成屏幕上一帧图像的</strong>。这一篇把 Producer 之后到像素扫描出去之前的完整链路拆开：Surface / ANativeWindow 是最后一公里的封装，SurfaceFlinger 是每个 VSYNC 醒来的调度器，HWC/DPU 是真正把像素送出去的硬件，VSYNC + Choreographer 是整套系统的节拍器，SurfaceTexture 是通往 GPU 特效的桥。讲完这一篇，MediaCodec 一帧从入队到上屏的因果链就闭合了。</p>
+</blockquote>
+<hr>
+<h1 id="一、Surface-ANativeWindow：Producer-侧的最后一公里"><a href="#一、Surface-ANativeWindow：Producer-侧的最后一公里" class="headerlink" title="一、Surface / ANativeWindow：Producer 侧的最后一公里"></a>一、Surface / ANativeWindow：Producer 侧的最后一公里</h1><p>第六篇讲过 BufferQueue 的接口是<code>IGraphicBufferProducer</code> / <code>IGraphicBufferConsumer</code>，两个 Binder 接口。直接用它们写代码相当难受——参数长、状态多、还要自己管跨进程句柄。所以<code>libgui</code>在 Producer 侧封了一层<code>Surface</code>，暴露 C++ 类和一套 C 结构体<code>ANativeWindow</code>。</p>
+<p>一句话理解三者关系：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">IGraphicBufferProducer (Binder 接口，跨进程)</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">     Surface     ← C++ 封装，持有 IGraphicBufferProducer 指针</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">  ANativeWindow  ← C 语言接口视图，同一个对象</span><br></pre></td></tr></table></figure>
+<p><code>Surface</code>同时继承<code>ANativeObjectBase&lt;ANativeWindow, Surface, RefBase&gt;</code>——<strong>同一个 C++ 对象既能当 C++ 类用（RefBase 智能指针），也能当 C 结构体用（EGL/Vulkan 那套 API）</strong>。这是 Android 图形栈里少见的”一个对象两种视图”设计。</p>
+<h2 id="Surface-干的三件事"><a href="#Surface-干的三件事" class="headerlink" title="Surface 干的三件事"></a>Surface 干的三件事</h2><p>第一件事，把 BufferQueue 的接口翻译成<code>ANativeWindow</code>函数指针：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">ANativeWindow</span> &#123;</span><br><span class="line">    <span class="built_in">int</span> (*dequeueBuffer)(ANativeWindow*, ANativeWindowBuffer**, <span class="type">int</span>* fenceFd);</span><br><span class="line">    <span class="built_in">int</span> (*queueBuffer)(ANativeWindow*, ANativeWindowBuffer*, <span class="type">int</span> fenceFd);</span><br><span class="line">    <span class="built_in">int</span> (*cancelBuffer)(ANativeWindow*, ANativeWindowBuffer*, <span class="type">int</span> fenceFd);</span><br><span class="line">    <span class="built_in">int</span> (*query)(<span class="type">const</span> ANativeWindow*, <span class="type">int</span> what, <span class="type">int</span>* value);</span><br><span class="line">    <span class="built_in">int</span> (*perform)(ANativeWindow*, <span class="type">int</span> operation, ...);</span><br><span class="line">    <span class="comment">// Several fields are omitted.</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>好处是纯 C 接口没有 C++ ABI 依赖，EGL、Vulkan、MediaCodec 的 JNI 都直接用这套 API。任何调用最终都会走进<code>Surface::hook_dequeueBuffer</code>这一族静态函数，再转到实例方法上——“函数指针散射到 C++ 方法”是<code>Surface</code>一层最典型的实现套路。</p>
+<p>第二件事，把 Producer 端琐碎的元信息 setter 集中管理：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line">surface-&gt;<span class="built_in">setBuffersDimensions</span>(<span class="number">1920</span>, <span class="number">1080</span>);</span><br><span class="line">surface-&gt;<span class="built_in">setBuffersFormat</span>(HAL_PIXEL_FORMAT_YCbCr_420_SP);</span><br><span class="line">surface-&gt;<span class="built_in">setBuffersDataSpace</span>(HAL_DATASPACE_BT709);</span><br><span class="line">surface-&gt;<span class="built_in">setBuffersTransform</span>(NATIVE_WINDOW_TRANSFORM_ROT_90);</span><br><span class="line">surface-&gt;<span class="built_in">setUsage</span>(GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_COMPOSER);</span><br><span class="line">surface-&gt;<span class="built_in">setMaxDequeuedBufferCount</span>(<span class="number">3</span>);</span><br></pre></td></tr></table></figure>
+<p>这些字段最终都会打包进第六篇讲过的<code>QueueBufferInput</code>，跟着<code>queueBuffer</code>一起发到 Consumer 侧。dataspace 传给 SurfaceFlinger 决定要不要做色彩转换，usage 传给 Gralloc 决定分配到哪个 heap，transform 传给 HWC 决定硬件旋转还是 GPU 旋转——这些字段在下面几节都会再次出现。</p>
+<p>第三件事，<code>eglSwapBuffers</code>背后就是它。GL 渲染管线里，一次<code>eglSwapBuffers</code>本质是这样一段：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="function">EGLBoolean <span class="title">eglSwapBuffers</span><span class="params">(EGLDisplay dpy, EGLSurface eglSurface)</span> </span>&#123;</span><br><span class="line">    ANativeWindow* window = <span class="comment">/* 从 eglSurface 里取出来 */</span>;</span><br><span class="line">    ANativeWindowBuffer* gbuf = <span class="comment">/* GL 之前 dequeue 的那块 buffer */</span>;</span><br><span class="line">    <span class="type">int</span> fenceFd = <span class="comment">/* GL 渲染完成时 EGL 生成的 fence */</span>;</span><br><span class="line">    <span class="keyword">return</span> window-&gt;<span class="built_in">queueBuffer</span>(window, gbuf, fenceFd);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>GL 渲染的输出等于 BufferQueue 的 Producer</strong>，只是 EGL 把这层封得看不出来。这个视角特别关键，<code>MediaCodec.createInputSurface()</code>就是把 encoder 塞成 BufferQueue 的 Consumer，再把 Producer 端 Surface 递给你，让你用 GL 去<code>eglSwapBuffers</code>喂帧给编码器。整个”GL 渲染 → 编码”零拷贝路径的接缝就在这里。</p>
+<h2 id="MediaCodec-的两种-Surface-用法"><a href="#MediaCodec-的两种-Surface-用法" class="headerlink" title="MediaCodec 的两种 Surface 用法"></a>MediaCodec 的两种 Surface 用法</h2><p>跟 MediaCodec 打交道，Surface 出现在两个场景，方向刚好相反：</p>
+<p><strong>解码输出侧</strong>——<code>codec.configure(format, surface, null, 0)</code>。此时 codec 是 Producer，你传进去的 surface 背后的 BufferQueue 的 Consumer 是 SurfaceFlinger（SurfaceView 场景）或 SurfaceTexture（TextureView / 特效场景）。第五篇讲过<code>CCodecBufferChannel::renderOutputBuffer</code>，就是把 vendor 解码产物在协议层<code>queueBuffer</code>一次。</p>
+<p><strong>编码输入侧</strong>——<code>val inputSurface = encoder.createInputSurface()</code>。此时 encoder 是 Consumer，你自己变成 Producer。中间夹的这个 BufferQueue 由<code>GraphicBufferSource</code>同时扮演 Consumer 和 encoder 的输入侧适配器：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">// MediaCodec.cpp 简化，示意 createInputSurface 内部结构</span></span><br><span class="line">sp&lt;GraphicBufferSource&gt; source = <span class="keyword">new</span> <span class="built_in">GraphicBufferSource</span>();</span><br><span class="line">sp&lt;IGraphicBufferProducer&gt; producer = source-&gt;<span class="built_in">getIGraphicBufferProducer</span>();</span><br><span class="line">mSource = source;</span><br><span class="line"><span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">Surface</span>(producer);   <span class="comment">// 返回给 App 的就是这个</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// GraphicBufferSource 收到新帧的回调</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">GraphicBufferSource::onFrameAvailable</span><span class="params">(<span class="type">const</span> BufferItem&amp;)</span> </span>&#123;</span><br><span class="line">    BufferItem item;</span><br><span class="line">    mConsumer-&gt;<span class="built_in">acquireBuffer</span>(&amp;item, <span class="number">0</span>);</span><br><span class="line">    mComponent-&gt;<span class="built_in">queue</span>(<span class="built_in">convertToC2Work</span>(item));   <span class="comment">// 灌进 Codec2 输入队列</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>也就是：<strong>编码器 Input Surface 只是把第六篇那套 BufferQueue 掉了个方向使</strong>——GL 渲染是 Producer，encoder 是 Consumer。</p>
+<hr>
+<h1 id="二、SurfaceFlinger：每个-VSYNC-醒来做的四件事"><a href="#二、SurfaceFlinger：每个-VSYNC-醒来做的四件事" class="headerlink" title="二、SurfaceFlinger：每个 VSYNC 醒来做的四件事"></a>二、SurfaceFlinger：每个 VSYNC 醒来做的四件事</h1><p>Buffer 在 BufferQueue 里<code>QUEUED</code>之后，就等 SurfaceFlinger 来 latch。SurfaceFlinger 是一个独立进程（<code>system_server</code>外，PID 通常写作<code>sf</code>），进程主线程是一个跑<code>Looper</code>的合成循环，由 VSYNC 信号驱动。</p>
+<p>先给一张全景，接下来按顺序拆四步：</p>
+<pre class="mermaid">flowchart TB
+    VS["VSYNC-sf 事件到达"]
+    A["Phase 1: latchBuffer<br/>拉每个 Layer 的最新一帧"]
+    B["Phase 2: prepare(HWC)<br/>询问 HWC 每层怎么合"]
+    C["Phase 3: composition<br/>DEVICE 归 HWC / CLIENT 归 GPU"]
+    D["Phase 4: presentDisplay<br/>提交给显示硬件"]
+    NEXT["等下一次 VSYNC"]
+
+    VS --> A --> B --> C --> D --> NEXT</pre>
+
+<h2 id="Phase-1-latchBuffer——拉最新一帧"><a href="#Phase-1-latchBuffer——拉最新一帧" class="headerlink" title="Phase 1: latchBuffer——拉最新一帧"></a>Phase 1: latchBuffer——拉最新一帧</h2><p>SurfaceFlinger 里每个可见的窗口都对应一个<code>Layer</code>对象，Layer 内部持有一个 BufferQueue Consumer 端。合成循环开始时，每个 Layer 都会调一次<code>latchBuffer</code>：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="type">status_t</span> <span class="title">Layer::latchBuffer</span><span class="params">(<span class="type">bool</span>&amp; recomputeVisibleRegions, <span class="type">nsecs_t</span> latchTime)</span> </span>&#123;</span><br><span class="line">    BufferQueue::BufferItem item;</span><br><span class="line">    <span class="type">status_t</span> err = mConsumer-&gt;<span class="built_in">acquireBuffer</span>(&amp;item, latchTime);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (err == NO_BUFFER_AVAILABLE) &#123;</span><br><span class="line">        <span class="keyword">return</span> NO_ERROR;   <span class="comment">// 没新帧，沿用上一帧</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    mActiveBuffer     = item.mGraphicBuffer;</span><br><span class="line">    mAcquiredFence    = item.mFence;         <span class="comment">// 第六篇那条 acquire fence</span></span><br><span class="line">    mCurrentTimestamp = item.mTimestamp;</span><br><span class="line"></span><br><span class="line">    mConsumer-&gt;<span class="built_in">releaseBuffer</span>(mPreviousSlot, mPreviousReleaseFence);</span><br><span class="line">    mPreviousSlot = item.mSlot;</span><br><span class="line">    <span class="keyword">return</span> NO_ERROR;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>三行关键判断读出来：</p>
+<ul>
+<li><strong><code>acquireBuffer</code>只拿一帧</strong>：即便 BufferQueue 里堆了三块<code>QUEUED</code>，SF 一次只拉一块。异步模式下拉的是最新那块，中间那块被直接 drop——<strong>这就是”SurfaceFlinger 掉帧”的机制原点</strong>，跟 App 端渲染慢是两码事。</li>
+<li><strong>acquire fence 只是记下来，不 wait</strong>：SF 到真正让 GPU/HWC 读 buffer 时才让硬件命令流去等这个 fence，CPU 这条线全程不阻塞。</li>
+<li><strong>releaseBuffer 传回 releaseFence</strong>：Producer 下一次<code>dequeueBuffer</code>要复写这个 slot 时会等这个 fence signal——这条链在第六篇讲过，两端 fence 加起来构成完整的握手。</li>
+</ul>
+<h2 id="Phase-2-prepare——把-layer-集合交给-HWC-决策"><a href="#Phase-2-prepare——把-layer-集合交给-HWC-决策" class="headerlink" title="Phase 2: prepare——把 layer 集合交给 HWC 决策"></a>Phase 2: prepare——把 layer 集合交给 HWC 决策</h2><p>在讲这一步之前，先把两个后面反复出现的词定义清楚。SurfaceFlinger 每一层都要走两条合成路径中的一条：</p>
+<ul>
+<li><strong>DEVICE（硬件合成）</strong>：这层 buffer 交给 HWC，由 DPU 硬件流水线上的一个 overlay plane 直接读、直接扫描到显示接口。SF 和 GPU 完全不参与像素搬运。是”最省电、最低延迟”的路径，视频播放追求的就是这条。</li>
+<li><strong>CLIENT（GPU 合成）</strong>：DPU 的 overlay plane 收不下这一层（原因下一节展开），SF 只能自己动手——用 GPU 把这层画到一块中间 buffer（叫 Client Target）里，最后再把 Client Target 当作一层交给 HWC。多一次 GPU pass，功耗和延迟都会抬。</li>
+</ul>
+<p>每层归 DEVICE 还是 CLIENT，<strong>不是 SF 单方面决定的，是 SF 提议 + HWC 拍板</strong>——这就是 Phase 2 干的事。</p>
+<p>latch 完所有 Layer 后，SF 把当前这一轮的 layer 集合交给 HWC HAL：每个 Layer 的<code>buffer</code>、<code>acquireFence</code>、<code>transform</code>、<code>crop</code>、<code>dataspace</code>、<code>hdrMetadata</code>一并 setLayer 到 HWC，然后调<code>validateDisplay</code>：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span> (Layer* layer : layers) &#123;</span><br><span class="line">    HWC2::Layer* hwc = layer-&gt;<span class="built_in">getHwcLayer</span>();</span><br><span class="line">    hwc-&gt;<span class="built_in">setBuffer</span>(layer-&gt;mActiveBuffer, layer-&gt;mAcquiredFence);</span><br><span class="line">    hwc-&gt;<span class="built_in">setCompositionType</span>(HWC2::Composition::Device);   <span class="comment">// SF 提议：这层希望走 DEVICE</span></span><br><span class="line">    hwc-&gt;<span class="built_in">setBlendMode</span>(layer-&gt;mBlendMode);</span><br><span class="line">    hwc-&gt;<span class="built_in">setTransform</span>(layer-&gt;mTransform);</span><br><span class="line">    hwc-&gt;<span class="built_in">setSourceCrop</span>(layer-&gt;mCrop);</span><br><span class="line">    hwc-&gt;<span class="built_in">setDisplayFrame</span>(layer-&gt;mOnScreen);</span><br><span class="line">    hwc-&gt;<span class="built_in">setDataspace</span>(layer-&gt;mDataspace);         <span class="comment">// 色彩空间信息</span></span><br><span class="line">    hwc-&gt;<span class="built_in">setHdrMetadata</span>(layer-&gt;mHdrMetadata);     <span class="comment">// HDR 元数据</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">hwcDisplay-&gt;<span class="built_in">validateDisplay</span>(&amp;numTypes, &amp;numRequests);</span><br><span class="line">hwcDisplay-&gt;<span class="built_in">getChangedCompositionTypes</span>(&amp;types);   <span class="comment">// HWC 的最终答复</span></span><br></pre></td></tr></table></figure>
+<p><code>validateDisplay</code>是一次协商——SF 说”我想让这几层都走 DEVICE”，HWC 回一句”这几层我能收，那几层你自己搞”。返回值里带的<code>ChangedCompositionTypes</code>就是 HWC 改判为<code>CLIENT</code>的那些 layer。这一步之后，每个 Layer 的最终 composition 类型才定下来。</p>
+<h2 id="Phase-3-composition——两条路径分工"><a href="#Phase-3-composition——两条路径分工" class="headerlink" title="Phase 3: composition——两条路径分工"></a>Phase 3: composition——两条路径分工</h2><p>Composition 分两条路走：</p>
+<p><strong>DEVICE 层</strong>：SF 什么都不做，等下一步的<code>presentDisplay</code>让 HWC 直接搬过去。</p>
+<p><strong>CLIENT 层</strong>：SF 用<code>RenderEngine</code>（底层是 GLES 或 Vulkan）把这些层合到一块中间<code>GraphicBuffer</code>——叫 Client Target。合完之后 Client Target 也当作一个 layer 交给 HWC：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line">renderEngine-&gt;<span class="built_in">drawLayers</span>(clientLayers, clientTarget, displayViewport);</span><br><span class="line">hwcDisplay-&gt;<span class="built_in">setClientTarget</span>(clientTarget, renderFence, dataspace);</span><br></pre></td></tr></table></figure>
+<p><strong>这就是”GPU 合成”和”HWC 合成”这两个说法的底层含义</strong>——同一次 VSYNC 里，一部分 layer 走硬件路径，一部分走 GPU 路径，最后由 HWC 把两条路的结果贴在一起。视频播放最理想的场景是零 CLIENT 层，全部 DEVICE，GPU 完全不参与。</p>
+<h2 id="Phase-4-present——提交并回传-fence"><a href="#Phase-4-present——提交并回传-fence" class="headerlink" title="Phase 4: present——提交并回传 fence"></a>Phase 4: present——提交并回传 fence</h2><p>最后一步很短：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line">hwcDisplay-&gt;<span class="built_in">presentDisplay</span>(&amp;presentFence);</span><br><span class="line"><span class="keyword">for</span> (Layer* layer : layers) &#123;</span><br><span class="line">    layer-&gt;<span class="built_in">onFramePresented</span>(presentFence);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>presentFence</code>是 DPU 真正把这一帧扫描到显示接口时 signal 的 fence。它会通过 BufferQueue 反向传给 Producer——MediaCodec 解码出来的这一帧到底什么时候上屏，Producer 侧靠这条 fence 才知道。<strong>A/V 同步校准的时间戳源头就在这里</strong>（后面文章会用到）。</p>
+<h1 id="三、HWC-DPU：为什么视频能做到低功耗"><a href="#三、HWC-DPU：为什么视频能做到低功耗" class="headerlink" title="三、HWC / DPU：为什么视频能做到低功耗"></a>三、HWC / DPU：为什么视频能做到低功耗</h1><p>上一节讲了 SF 会把 layer 交给 HWC 决策，这一节讲 HWC 到底是什么，凭什么能”不走 GPU 就把画面送出去”。</p>
+<p>HWC（Hardware Composer）是一层 HAL，Android 13 之后接口从 HIDL 换到了 AIDL：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">android.hardware.graphics.composer3    // AIDL, Android 13+</span><br><span class="line">android.hardware.graphics.composer@2.4  // HIDL, Android 9-12</span><br></pre></td></tr></table></figure>
+<p>HAL 之下真正干活的硬件叫 DPU（Display Processing Unit）——手机 SoC 里独立于 CPU/GPU 的一块显示模块。它的核心能力是<strong>多个 overlay plane 直接读 DMA-BUF、硬件混合、扫描输出</strong>：</p>
+<pre class="mermaid">flowchart TB
+    subgraph DPU["DPU 硬件流水线"]
+        P1["Plane 1<br/>Layer: 状态栏 (RGBA)"]
+        P2["Plane 2<br/>Layer: App UI (RGBA)"]
+        P3["Plane 3<br/>Layer: 视频 (NV12/P010)"]
+        P4["Plane 4<br/>Layer: 导航栏 (RGBA)"]
+        BLEND["Alpha 混合 + 色彩转换 + 缩放"]
+        P1 --> BLEND
+        P2 --> BLEND
+        P3 --> BLEND
+        P4 --> BLEND
+    end
+    OUT["MIPI DSI / eDP / HDMI / DP"]
+    BLEND --> OUT</pre>
+
+<p>overlay plane 数量因 SoC 而异，中高端 SoC 大约 4-8 个。<strong>每个 plane 读一块<code>GraphicBuffer</code></strong>——就是第六篇讲的那个 dma-buf 视图，MediaCodec 输出的 YUV buffer 直接就能塞进去。</p>
+<h2 id="视频层为什么典型是-DEVICE-合成"><a href="#视频层为什么典型是-DEVICE-合成" class="headerlink" title="视频层为什么典型是 DEVICE 合成"></a>视频层为什么典型是 DEVICE 合成</h2><p>一个典型视频播放场景的 layer 栈从底到上排列：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Z=0    墙纸           (DEVICE)</span><br><span class="line">Z=100  视频 SurfaceView (DEVICE, YUV plane)</span><br><span class="line">Z=500  App UI          (DEVICE)</span><br><span class="line">Z=900  StatusBar       (DEVICE)</span><br><span class="line">Z=1000 NavigationBar   (DEVICE)</span><br></pre></td></tr></table></figure>
+<p>这五层刚好占满 5 个 overlay plane，全 DEVICE 合成。整条播放链路的画面数据流是：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">VPU 硬件解码</span><br><span class="line">    │  写入</span><br><span class="line">    ▼</span><br><span class="line">DMA-BUF (YUV GraphicBuffer, usage = HW_TEXTURE | HW_COMPOSER)</span><br><span class="line">    │</span><br><span class="line">    │  同一块物理内存，两条 fd 视图</span><br><span class="line">    │</span><br><span class="line">    └── HWC / DPU 直接读 → 扫描到显示接口</span><br></pre></td></tr></table></figure>
+<p><strong>GPU、CPU 全程不参与像素搬运</strong>——VPU 写完这块 YUV，DPU 直接把它扫到屏幕。第六篇里那句”MediaCodec 输出走<code>HW_TEXTURE | HW_COMPOSER</code>“到这里才闭合含义：<code>HW_COMPOSER</code>就是给 HWC 用的钥匙。这条零拷贝路径决定了 1080p30 视频稳定播放时功耗能压到 100-200 mW 量级——手机厂商标榜的”低功耗视频播放”，能耗曲线上那条平线基本靠这条通路撑起来。</p>
+<h1 id="四、VSYNC-与-Choreographer：整套系统的节拍器"><a href="#四、VSYNC-与-Choreographer：整套系统的节拍器" class="headerlink" title="四、VSYNC 与 Choreographer：整套系统的节拍器"></a>四、VSYNC 与 Choreographer：整套系统的节拍器</h1><p>前面三节都在描述”每一次 VSYNC 里发生什么”。这一节讲 VSYNC 本身——它从哪里来、怎么分发到 App 和 SF、以及为什么 Android 4.1 之后卡顿明显减少。</p>
+<h2 id="VSYNC-的来源"><a href="#VSYNC-的来源" class="headerlink" title="VSYNC 的来源"></a>VSYNC 的来源</h2><p>屏幕硬件每 16.67 ms（60 Hz）扫描完一帧就触发一次硬件中断，Linux DRM 驱动收到中断，通过 event fd 通知 SurfaceFlinger。SF 内部维护一个<code>DispSync</code>对象，用来对硬件 VSYNC 做节奏预测——即使硬件 VSYNC 因为省电临时关掉，<code>DispSync</code>也能凭历史时刻软推下一次 VSYNC：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">DPU 硬件 vblank 中断</span><br><span class="line">    │</span><br><span class="line">    ▼</span><br><span class="line">DRM driver (drm_handle_vblank)</span><br><span class="line">    │</span><br><span class="line">    ▼</span><br><span class="line">SurfaceFlinger DispSync</span><br><span class="line">    │</span><br><span class="line">    ├──→ EventThread(VSYNC-app) ──→ App 进程 Choreographer</span><br><span class="line">    └──→ EventThread(VSYNC-sf)  ──→ SF 主线程 onMessageRefresh</span><br></pre></td></tr></table></figure>
+<p>分成两路广播的原因是<strong>让 App 比 SF 早若干毫秒开始绘制</strong>，这样 SF 醒来时 App 已经<code>queueBuffer</code>完了，SF 立刻能 latch 到最新一帧。如果 Offset 设为 0（同时醒来），App 画完的帧必须干等一个周期，到下一个信号来时才能被 SurfaceFlinger 消费，产生 33.2ms（2帧） 的巨大肉眼延迟；</p>
+<h2 id="VSYNC-app-与-VSYNC-sf-的-offset"><a href="#VSYNC-app-与-VSYNC-sf-的-offset" class="headerlink" title="VSYNC-app 与 VSYNC-sf 的 offset"></a>VSYNC-app 与 VSYNC-sf 的 offset</h2><p>两路 VSYNC 相对硬件 VSYNC 各有一个 offset（负值，即提前触发）：</p>
+<pre class="mermaid">sequenceDiagram
+    participant HW as 硬件 VSYNC
+    participant APP as App (Choreographer)
+    participant SF as SurfaceFlinger
+
+    HW->>APP: VSYNC-app (offset_app 提前, 比如 -2ms)
+    Note over APP: 触发 doFrame → 测量/布局/绘制/eglSwapBuffers
+    APP->>APP: buffer QUEUED
+    HW->>SF: VSYNC-sf (offset_sf 提前, 比如 -1ms)
+    Note over SF: onMessageRefresh → latchBuffer → present
+    HW->>HW: 硬件扫描出这一帧</pre>
+
+<p>各家厂商的 offset 都是自己调优的，Pixel 系上大约是<code>vsyncPhaseOffsetNs=1000000</code>(SF 提前 1 ms)、<code>appVsyncPhaseOffsetNs=2000000</code>(App 提前 2 ms)量级。这两个数字直接影响端到端延迟：offset 拉大能让流水线更宽松，代价是从用户输入到上屏多一帧延迟。</p>
+<h2 id="Choreographer-是-App-侧入口"><a href="#Choreographer-是-App-侧入口" class="headerlink" title="Choreographer 是 App 侧入口"></a>Choreographer 是 App 侧入口</h2><p>App 侧不直接监听 VSYNC，是通过<code>Choreographer</code>——它内部有个<code>DisplayEventReceiver</code>挂在 fd socket 上，SF 那边把 VSYNC-app 事件写过来：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Choreographer.getInstance().postFrameCallback(<span class="keyword">new</span> <span class="title class_">Choreographer</span>.FrameCallback() &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doFrame</span><span class="params">(<span class="type">long</span> frameTimeNanos)</span> &#123;</span><br><span class="line">        <span class="comment">// frameTimeNanos 就是这一帧的 VSYNC 时刻</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p><code>Choreographer</code>每次收到 VSYNC-app 会按固定顺序处理四类回调：<code>INPUT</code>（分发触摸事件）→<code>ANIMATION</code>（推进属性动画）→<code>TRAVERSAL</code>（<code>ViewRootImpl.performTraversals</code>触发测量/布局/绘制）→<code>COMMIT</code>。<strong>这条流水线就是 UI 帧渲染的骨架</strong>——任何一步耗时超 16 ms，这一帧就 miss VSYNC，用户感知为卡顿。</p>
+<h2 id="视频播放的-VSYNC-用法"><a href="#视频播放的-VSYNC-用法" class="headerlink" title="视频播放的 VSYNC 用法"></a>视频播放的 VSYNC 用法</h2><p>写视频播放器时最容易踩的一个坑：直接按 PTS 用<code>Thread.sleep</code>控制帧节奏。这个写法在 60Hz 屏、30fps 视频上偶尔看着还行，一遇到 24fps 或者动态刷新率就崩：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 反例：睡眠不对齐 VSYNC</span></span><br><span class="line"><span class="keyword">val</span> sleepMs = pts - currentTime</span><br><span class="line">Thread.sleep(sleepMs)</span><br><span class="line">codec.releaseOutputBuffer(idx, <span class="literal">true</span>)</span><br></pre></td></tr></table></figure>
+<p>问题在<code>releaseOutputBuffer(idx, true)</code>只是把 buffer 递给 SF 的 BufferQueue，具体上哪一次 VSYNC 由 SF 决定，App 完全不可控。正确姿势是把预期上屏时刻直接告诉 MediaCodec：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 正确：把渲染目标时刻告诉 codec</span></span><br><span class="line">codec.releaseOutputBuffer(idx, desiredRenderTimeNs)</span><br></pre></td></tr></table></figure>
+<p>MediaCodec 内部会把<code>desiredRenderTimeNs</code>写进<code>QueueBufferInput.timestamp</code>（第六篇讲过这个字段）——SF 在 latch 时会挑<code>timestamp</code>最接近当前 VSYNC 时刻的那一帧显示。<strong>这条通路是 A/V 同步与 VRR（可变刷新率）联动的关键</strong>，具体实现细节留到后面的 A/V 同步专题。</p>
+<h1 id="五、SurfaceTexture：把视频帧变成-GL-纹理"><a href="#五、SurfaceTexture：把视频帧变成-GL-纹理" class="headerlink" title="五、SurfaceTexture：把视频帧变成 GL 纹理"></a>五、SurfaceTexture：把视频帧变成 GL 纹理</h1><p>前面四节把”视频帧到屏幕”这条主路讲完了。但很多真实场景里视频不是直接上屏——播放器要加滤镜、加水印、做美颜、录屏。这些场景的公共前提是<strong>把视频帧当成 GL 纹理来采样</strong>。这一步靠<code>SurfaceTexture</code>。</p>
+<h2 id="定位：一种特殊的-Consumer"><a href="#定位：一种特殊的-Consumer" class="headerlink" title="定位：一种特殊的 Consumer"></a>定位：一种特殊的 Consumer</h2><p><code>SurfaceTexture</code>本质是 BufferQueue 的一种 Consumer，跟 SurfaceFlinger 的 Layer 平级——同样从 BufferQueue 里<code>acquireBuffer</code>。区别在于它拿到 buffer 之后<strong>不做合成、也不送屏</strong>，而是把这块<code>GraphicBuffer</code>绑到一个 GL 纹理上，供你自己写的 shader 采样：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">MediaCodec 解码器 (Producer)</span><br><span class="line">     │  queueBuffer</span><br><span class="line">     ▼</span><br><span class="line">  BufferQueue</span><br><span class="line">     │  acquireBuffer</span><br><span class="line">     ▼</span><br><span class="line">SurfaceTexture (Consumer)</span><br><span class="line">     │  updateTexImage</span><br><span class="line">     ▼</span><br><span class="line">GL_TEXTURE_EXTERNAL_OES 纹理 (指向同一块 dma-buf)</span><br><span class="line">     │  自己的 shader 采样</span><br><span class="line">     ▼</span><br><span class="line">渲染到自己想去的地方 (SurfaceView / Encoder InputSurface / FBO)</span><br></pre></td></tr></table></figure>
+<p><strong>这条通路的价值是提供了”视频 + 特效”这个能力</strong>——不用把 YUV 拷到 CPU 转 RGB 再传回 GL，一切在 GPU 侧完成。</p>
+<h2 id="updateTexImage-的两次关键-EGL-调用"><a href="#updateTexImage-的两次关键-EGL-调用" class="headerlink" title="updateTexImage 的两次关键 EGL 调用"></a>updateTexImage 的两次关键 EGL 调用</h2><p><code>updateTexImage</code>是<code>SurfaceTexture</code>的核心方法，代码骨架看下面这几行：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="type">status_t</span> <span class="title">SurfaceTexture::updateTexImage</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 1. 从 BufferQueue 拉最新一帧</span></span><br><span class="line">    BufferItem item;</span><br><span class="line">    mConsumer-&gt;<span class="built_in">acquireBuffer</span>(&amp;item, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 把 GraphicBuffer 包成 EGLImage</span></span><br><span class="line">    EGLImageKHR eglImage = <span class="built_in">eglCreateImageKHR</span>(</span><br><span class="line">        eglDpy, EGL_NO_CONTEXT,</span><br><span class="line">        EGL_NATIVE_BUFFER_ANDROID,</span><br><span class="line">        (EGLClientBuffer)item.mGraphicBuffer-&gt;<span class="built_in">getNativeBuffer</span>(),</span><br><span class="line">        attribs);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 把 EGLImage 绑到当前 GL 上下文的 OES 纹理</span></span><br><span class="line">    <span class="built_in">glBindTexture</span>(GL_TEXTURE_EXTERNAL_OES, mTexName);</span><br><span class="line">    <span class="built_in">glEGLImageTargetTexture2DOES</span>(GL_TEXTURE_EXTERNAL_OES, eglImage);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4. 记下 transform matrix、时间戳等元信息</span></span><br><span class="line">    mCurrentTransformMatrix = item.mTransformMatrix;</span><br><span class="line">    <span class="keyword">return</span> NO_ERROR;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关键在步骤 2 和步骤 3——<code>eglCreateImageKHR + glEGLImageTargetTexture2DOES</code>是 Android 图形栈里”跨子系统零拷贝”的通用模式。<strong>GraphicBuffer 底层的 dma-buf 没有被拷贝，只是多了一个 GL 侧的采样入口</strong>。VPU 写过的那块物理内存，GPU 直接就能读。</p>
+<h2 id="为什么要用-GL-TEXTURE-EXTERNAL-OES"><a href="#为什么要用-GL-TEXTURE-EXTERNAL-OES" class="headerlink" title="为什么要用 GL_TEXTURE_EXTERNAL_OES"></a>为什么要用 GL_TEXTURE_EXTERNAL_OES</h2><p>普通<code>GL_TEXTURE_2D</code>要求内容是 GL 标准像素格式（RGBA 之类）。SurfaceTexture 底下经常是 NV12、P010——这些是 YUV 家族的存储格式，GL 标准里不认。<code>GL_TEXTURE_EXTERNAL_OES</code>是 Khronos 的扩展，允许采样任意硬件像素格式，<strong>GPU 驱动内部自动做 YUV 到 RGB 的转换</strong>。</p>
+<p>对应到 shader 上有两处必须改：</p>
+<figure class="highlight glsl"><table><tr><td class="code"><pre><span class="line"><span class="meta">#extension GL_OES_EGL_image_external : require</span></span><br><span class="line"><span class="keyword">precision</span> <span class="keyword">mediump</span> <span class="type">float</span>;</span><br><span class="line"><span class="keyword">uniform</span> samplerExternalOES sTexture;   <span class="comment">// 不是 sampler2D</span></span><br><span class="line"><span class="keyword">varying</span> <span class="type">vec2</span> vTexCoord;</span><br><span class="line"><span class="type">void</span> main() &#123;</span><br><span class="line">    <span class="built_in">gl_FragColor</span> = <span class="built_in">texture2D</span>(sTexture, vTexCoord);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="SurfaceView-vs-TextureView-vs-手动管-GL"><a href="#SurfaceView-vs-TextureView-vs-手动管-GL" class="headerlink" title="SurfaceView vs TextureView vs 手动管 GL"></a>SurfaceView vs TextureView vs 手动管 GL</h2><p>同一个 codec 输出 Surface，接的 Consumer 不同，性能特征天差地别：</p>
+<ul>
+<li><strong>SurfaceView</strong>：Consumer 是 SurfaceFlinger，视频层是独立 Layer。走 HWC DEVICE 合成的可能性最大，功耗最低、延迟最短，代价是<strong>不能参与 View 动画</strong>（旋转、alpha、平移都不作用于视频画面）。</li>
+<li><strong>TextureView</strong>：Consumer 是内嵌的 SurfaceTexture，视频帧被合并进 App 的硬件绘制树。可以随便做 View 动画，代价是<strong>必然走 CLIENT 合成</strong>（多一次 GPU pass），功耗和延迟都比 SurfaceView 高一档，一般多 1-2 帧延迟。</li>
+<li><strong>手动管 EGL Context + SurfaceTexture</strong>：Consumer 是自己写的类，视频帧作为一个 GL 纹理供你随意加特效，最终再输出到 SurfaceView 或 encoder 的 Input Surface。灵活度最高，实现复杂度也最高。</li>
+</ul>
+<p><strong>选型判断</strong>：纯播放选 SurfaceView；需要视频跟着 View 动画一起变换选 TextureView；做特效或需要边播边录，只能选第三种。</p>
+<p>第三种方案的完整拓扑是这样的：</p>
+<pre class="mermaid">flowchart LR
+    DEC["MediaCodec 解码器"]
+    ST["SurfaceTexture<br/>OES 纹理"]
+    FX["自定义 GL Shader<br/>滤镜/水印/美颜"]
+    DISP_SURF["SurfaceView 的<br/>EGLSurface"]
+    ENC_SURF["Encoder InputSurface<br/>的 EGLSurface"]
+    ENC["MediaCodec 编码器"]
+    MP4[("MP4 输出")]
+
+    DEC -- queueBuffer --> ST
+    ST -- updateTexImage --> FX
+    FX -- eglSwapBuffers --> DISP_SURF
+    FX -- eglSwapBuffers --> ENC_SURF
+    ENC_SURF --> ENC --> MP4</pre>
+
+<p><strong>同一个 GL Context 里挂两个 EGLSurface，分别向显示和编码器输出</strong>——这是 Android 上”边播边录 + 特效”的标准骨架。</p>
+<hr>
+<h1 id="六、闭环：MediaCodec-一帧的完整命运"><a href="#六、闭环：MediaCodec-一帧的完整命运" class="headerlink" title="六、闭环：MediaCodec 一帧的完整命运"></a>六、闭环：MediaCodec 一帧的完整命运</h1><p>到这里把一帧 YUV 从 vendor 进程解出来到显示到屏幕的完整因果链拉通看一遍：</p>
+<pre class="mermaid">sequenceDiagram
+    participant VPU as VPU 硬件
+    participant Vendor as vendor 进程<br/>(Codec2 HAL)
+    participant App as App 进程<br/>(MediaCodec / BufferChannel)
+    participant BQ as BufferQueue<br/>(SF 进程内)
+    participant SF as SurfaceFlinger 主线程
+    participant HWC as HWC HAL / DPU
+    participant Screen as 显示屏
+
+    Note over VPU,Vendor: 第五篇讲的 vendor 侧
+    VPU->>Vendor: 解码完成，YUV 写入 dma-buf
+    VPU->>Vendor: 触发 acquire fence
+
+    Note over Vendor,App: 第五 + 第六篇讲的跨进程
+    Vendor->>App: workDone (C2Work 回调)
+    App->>App: renderOutputBuffer(pts, renderTimeNs)
+
+    Note over App,BQ: 本文第一节
+    App->>BQ: Surface::queueBuffer<br/>(带 timestamp/dataspace/fence)
+    BQ->>BQ: slot 状态 DEQUEUED → QUEUED
+    BQ->>SF: onFrameAvailable
+
+    Note over SF: 本文第二节
+    SF->>BQ: latchBuffer (下一次 VSYNC-sf 触发)
+    BQ->>SF: BufferItem (带 acquire fence)
+    SF->>HWC: setLayer + validateDisplay
+    HWC->>SF: composition = DEVICE
+
+    Note over SF,HWC: 本文第三节
+    SF->>HWC: presentDisplay
+    HWC->>HWC: DPU 直接读 dma-buf<br/>(等 acquire fence signal)
+    HWC->>Screen: 扫描到 MIPI/eDP/HDMI
+    HWC->>SF: presentFence
+    SF->>App: 回传 releaseFence + presentFence</pre>
+
+<p>按流水线角度重述整条路径的一句话：</p>
+<p>VPU 解码写出的这块 dma-buf，<strong>在 vendor 进程、App 进程、SF 进程里各有一份 GraphicBuffer 视图，物理内存只有一份</strong>（第六篇的物理底座）。App 进程走<code>Surface::queueBuffer</code>把 slot 交给 SF 的 BufferQueue（本文第一节）。SF 每收到一次 VSYNC-sf 醒来一次，<code>latchBuffer</code>拿到最新帧，<code>validateDisplay</code>跟 HWC 协商 composition 类型（本文第二节）。视频层多数场景是 DEVICE，DPU 硬件流水线直接读那块 dma-buf 扫描到显示接口（本文第三节）。整条链上，acquire fence 保证 DPU 不会读到还没写完的 buffer，release fence 保证 VPU 不会复写还没扫完的 buffer——<strong>CPU 全程只在协议层做转手，一字节像素都没搬</strong>。</p>
+<p>VSYNC 是这条流水线的节拍器（本文第四节），SurfaceTexture 是从这条流水线抽出一个中间点做特效的接口（本文第五节）。</p>
+<h2 id="收束"><a href="#收束" class="headerlink" title="收束"></a>收束</h2><ul>
+<li>MediaCodec 的输出端不神秘。它就是一个 BufferQueue Producer，通过<code>Surface</code>封装暴露成<code>ANativeWindow</code>。渲染到屏幕靠 SF+HWC，加特效靠 SurfaceTexture，编码新一路视频靠<code>createInputSurface</code>——三条路共用同一个 BufferQueue 抽象。</li>
+<li>SurfaceFlinger 每次 VSYNC 只做四件事：latch、prepare、composition、present。搞不清卡在哪一步就<code>dumpsys SurfaceFlinger --latency</code>看时间点，别猜。</li>
+<li>HWC 是”能不用 GPU 就不用 GPU”的裁判员。DPU 有几个 overlay plane、DPU 支不支持某种 dataspace，直接决定视频功耗曲线的形状。</li>
+<li>VSYNC-app 和 VSYNC-sf 的 offset 是端到端延迟的直接来源。播放器控帧不要<code>Thread.sleep</code>，用<code>releaseOutputBuffer(idx, renderTimeNs)</code>把预期上屏时刻交给 SF。</li>
+<li>SurfaceTexture 是特效路径的入口——理解它 = 理解<code>eglCreateImageKHR + glEGLImageTargetTexture2DOES</code>这两行调用做了什么。</li>
+</ul>
+<p>到这里图形管线（GraphicBuffer + BufferQueue + Surface + SurfaceFlinger + HWC + VSYNC + SurfaceTexture）全部拆完，MediaCodec 的输出端已经完全打通。系列后续两篇转向 GPU 特效链路和编码回程，都会不断用到这一篇里定义的 Surface / SurfaceTexture / VSYNC 三个接口。</p>
+</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css?v=1.0.0"><script type="text/javascript" src="/js/donate.js?v=1.0.0" successtext="复制成功！"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" target="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="https://cdn.julis.wang/blog/img/ali_pay.jpeg"></li><li id="WeChat" qr="https://cdn.julis.wang/blog/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MediaCodec/" rel="tag">MediaCodec</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/" rel="tag">音视频</a></li></ul></div><div class="post-nav"><a class="next" href="/2026/06/21/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%85%AD-%EF%BC%9AGraphicBuffer-%E5%92%8C-BufferQueue/">MediaCodec 全链路深度剖析(六)：GraphicBuffer 和 BufferQueue</a></div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:1607637473@qq.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank" style="margin-inline:5px"> <i class="fa fa-vimeo-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">45</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/" style="font-size: 15px;">音视频</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/%E5%A4%A7%E5%AD%A6/" style="font-size: 15px;">大学</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/SDK/" style="font-size: 15px;">SDK</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2026/07/02/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%B8%83-%EF%BC%9ASurfaceFlinger%E3%80%81HWC-%E4%B8%8E-Android-%E6%98%BE%E7%A4%BA%E7%AE%A1%E7%BA%BF/">MediaCodec 全链路深度剖析(七)：SurfaceFlinger、HWC 与 Android 显示管线</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/06/21/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%85%AD-%EF%BC%9AGraphicBuffer-%E5%92%8C-BufferQueue/">MediaCodec 全链路深度剖析(六)：GraphicBuffer 和 BufferQueue</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/06/01/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%BA%94-%EF%BC%9A%E4%BB%8E-C2Work-%E5%88%B0-vendor-%E8%BF%9B%E7%A8%8B/">MediaCodec 全链路深度剖析(五)：从 C2Work 到 vendor 进程</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/11/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%9B%9B-%EF%BC%9ACCodec-%E4%B8%8E-BufferChannel-%E7%9A%84%E5%88%86%E5%B7%A5/">MediaCodec 全链路深度剖析(四)：CCodec 与 BufferChannel 的分工</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/10/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%B8%89-%EF%BC%9ANative-%E6%B6%88%E6%81%AF%E6%9C%BA%E5%88%B6%E4%B8%8E-JNI-%E6%A1%A5%E6%8E%A5/">MediaCodec 全链路深度剖析(三)：Native 消息机制与 JNI 桥接</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/05/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9AJava-%E5%B1%82-API-%E4%B8%8E%E7%8A%B6%E6%80%81%E6%9C%BA/">MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/04/30/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E5%BC%80%E7%AF%87-%E2%80%94%E2%80%94-%E5%BD%93%E4%BD%A0%E7%82%B9%E4%B8%8B-%E6%92%AD%E6%94%BE-%EF%BC%8C%E7%A9%B6%E7%AB%9F%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F/">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下"播放"，究竟发生了什么？</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/">如何构建一个好用的SDK</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/">JPEG压缩之DCT离散余弦变换</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/09/15/H264%E7%A0%81%E6%B5%81%E7%BB%93%E6%9E%84%E7%90%86%E8%A7%A3%E6%95%B4%E7%90%86/">H264码流结构理解整理</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://k.julis.wang" title="Knowledge Precipitation" target="_blank">Knowledge Precipitation</a><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2026 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/VomPom/kami-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/vompom"> Vompom.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+if (search_path.length == 0) {
+  search_path = 'search.xml';
+}
+var path = '/' + search_path;
+searchFunc(path, 'local-search-input', 'local-search-result');
+</script><script type="text/javascript" src="/js/copycode.js?v=1.0.0" successtext="复制成功！"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css?v=1.0.0"><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script><link rel="stylesheet" type="text/css" href="/css/mermaid-viewer.css?v=1.0.0"><script type="text/javascript" src="/js/mermaid-viewer.js?v=1.0.0"></script><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs';
+// Kami palette (parchment + ink-blue)
+const kamiTheme = {
+  fontFamily: 'Charter, "TsangerJinKai02", "Source Han Serif SC", "Songti SC", Georgia, serif',
+  fontSize:           '14px',
+  primaryColor:       '#EEF2F7',  /* brand-tint */
+  primaryBorderColor: '#1B365D',  /* brand */
+  primaryTextColor:   '#141413',  /* near-black */
+  secondaryColor:     '#faf9f5',  /* ivory */
+  secondaryBorderColor:'#e8e6dc', /* border */
+  secondaryTextColor: '#3d3d3a',
+  tertiaryColor:      '#f5f4ed',  /* parchment */
+  tertiaryBorderColor:'#e5e3d8',
+  tertiaryTextColor:  '#3d3d3a',
+  lineColor:          '#504e49',  /* olive */
+  textColor:          '#141413',
+  background:         '#f5f4ed',
+  mainBkg:            '#faf9f5',
+  secondBkg:          '#EEF2F7',
+  tertiaryBkg:        '#E4ECF5',
+  nodeBorder:         '#1B365D',
+  clusterBkg:         '#faf9f5',
+  clusterBorder:      '#e8e6dc',
+  edgeLabelBackground:'#f5f4ed',
+  titleColor:         '#141413',
+  labelTextColor:     '#141413',
+  noteBkgColor:       '#faf9f5',
+  noteBorderColor:    '#e8e6dc',
+  noteTextColor:      '#3d3d3a',
+  activationBkgColor: '#EEF2F7',
+  activationBorderColor:'#1B365D',
+  sequenceNumberColor:'#faf9f5',
+  actorBkg:           '#faf9f5',
+  actorBorder:        '#1B365D',
+  actorTextColor:     '#141413',
+  actorLineColor:     '#504e49',
+  signalColor:        '#3d3d3a',
+  signalTextColor:    '#141413',
+  labelBoxBkgColor:   '#EEF2F7',
+  labelBoxBorderColor:'#1B365D',
+  altBackground:      '#faf9f5',
+  gridColor:          '#e5e3d8'
+};
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  themeVariables: kamiTheme,
+  securityLevel: 'loose',
+  flowchart: { useMaxWidth: true, curve: 'basis', htmlLabels: true },
+  sequence: { useMaxWidth: true },
+  gantt: { useMaxWidth: true },
+  journey: { useMaxWidth: true },
+  class: { useMaxWidth: true },
+  state: { useMaxWidth: true },
+  er: { useMaxWidth: true },
+  pie: { useMaxWidth: true },
+  mindmap: { useMaxWidth: true },
+  gitGraph: { useMaxWidth: true }
+});
+await mermaid.run({ querySelector: 'pre.mermaid' });
+if (window.MermaidViewer) window.MermaidViewer.scan();</script></div></body></html>
