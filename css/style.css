@@ -81,7 +81,7 @@ body {
   background: var(--parchment);
   color: var(--near-black);
   font-family: var(--sans);
-  font-size: 14px; /* Kami spec: 10pt ≈ 13.3px → round to 14px (9.5–10pt) */
+  font-size: 15px; /* Kami spec: 10pt ≈ 13.3px → round to 14px (9.5–10pt) */
   line-height: 1.55; /* Kami spec: 1.55 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -132,7 +132,7 @@ hr.section {
 }
 
 strong, b {
-  font-weight: 500;
+  font-weight: 400;
   color: var(--near-black);
 } /* Kami uses 500 */
 em, i {
@@ -530,7 +530,7 @@ div {
 .post .post-content {
   clear: left;
   font-family: var(--serif);
-  font-size: 14px; /* Kami spec: 10pt ≈ 13.3px (body sans) */
+  font-size: 15px; /* Kami spec: 10pt ≈ 13.3px (body sans) */
   line-height: 1.55; /* Kami spec: 1.55 */
   color: var(--near-black);
   padding-top: 22px;
@@ -887,7 +887,7 @@ blockquote,
   padding: 16px 21px; /* Kami: 12pt 16pt */
   color: var(--olive);
   font-family: var(--serif);
-  font-size: 14px; /* Kami: 10.5pt */
+  font-size: 15px; /* Kami: 10.5pt */
   line-height: 1.55;
   letter-spacing: 0.4px; /* Kami: 0.3pt */
   background: var(--ivory); /* Kami: ivory card fill */
@@ -2249,7 +2249,7 @@ html[data-dark=true] img {
     font-size: 24px;
   }
   .post .post-content {
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.75;
   }
   .toc-article {
