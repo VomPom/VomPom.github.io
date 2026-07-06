@@ -13,7 +13,7 @@ html.dataset.dark = localStorage.dark || prefersDarkMode.matches;
 toggle.addEventListener('click', () => {
 localStorage.dark = !(html.dataset.dark == 'true');
 html.dataset.dark = localStorage.dark;
-});</script><meta name="generator" content="Hexo 7.3.0"><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下&quot;播放&quot;，究竟发生了什么？</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="https://k.julis.wang"><i class="fa fa-wikipedia-w"> 知识</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下&quot;播放&quot;，究竟发生了什么？</h1><div class="post-meta">2026年04月30日<span> | </span><span class="category"><a href="/categories/technology/">技术文章</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 3.3k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 13</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><blockquote>
+});</script><meta name="generator" content="Hexo 7.3.0"><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下&quot;播放&quot;，究竟发生了什么？</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="https://k.julis.wang"><i class="fa fa-wikipedia-w"> 知识</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下&quot;播放&quot;，究竟发生了什么？</h1><div class="post-meta">2026年04月30日<span> | </span><span class="category"><a href="/categories/technology/">技术文章</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 3.5k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 14</span><span class="post-meta-item-text"> 分钟</span></span></span></div><div class="post-content"><blockquote>
 <p><strong>系列导读</strong>：本系列将从 Kotlin/Java 应用层出发，一路向下，穿越 JNI、Native framework、Codec2、HAL、驱动，直至 SoC 内部的 VPU/GPU/NPU 硬件电路，完整拆解一帧视频从<strong>磁盘到屏幕</strong>的代码链路与数据流转。</p>
 <p>本文是<strong>第 1 篇 · 开篇总览</strong>，不涉及具体代码细节，目的是建立一张「全景地图」，让你知道自己在下面哪一层、该往哪个方向挖。</p>
 </blockquote>
@@ -66,20 +66,20 @@ html.dataset.dark = localStorage.dark;
 <li>对”线程”、”IPC”、”进程”有基本概念</li>
 </ul>
 <hr>
-<h3 id="一个直击灵魂的提问"><a href="#一个直击灵魂的提问" class="headerlink" title="一个直击灵魂的提问"></a>一个直击灵魂的提问</h3><p>在正式展开之前，先做一个思想实验。假设你写了如下最朴素的播放代码：</p>
+<h3 id="一个直击灵魂的提问"><a href="#一个直击灵魂的提问" class="headerlink" title="一个直击灵魂的提问"></a>一个直击灵魂的提问</h3><p>在正式展开之前，先做一个思想实验。假设你写了如下最简单的播放代码：</p>
 <figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> extractor = MediaExtractor().apply &#123; setDataSource(<span class="string">&quot;/sdcard/demo.mp4&quot;</span>) &#125;</span><br><span class="line"><span class="keyword">val</span> format = extractor.getTrackFormat(videoTrackIndex)</span><br><span class="line"><span class="keyword">val</span> codec  = MediaCodec.createDecoderByType(<span class="string">&quot;video/avc&quot;</span>).apply &#123;</span><br><span class="line">    configure(format, surfaceView.holder.surface, <span class="literal">null</span>, <span class="number">0</span>)</span><br><span class="line">    start()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// ... queueInputBuffer / releaseOutputBuffer ...</span></span><br></pre></td></tr></table></figure>
 <p>点击运行，屏幕上出现了画面。</p>
 <p><strong>问题来了</strong>：从你调用 <code>releaseOutputBuffer(index, true)</code> 那一刻算起，到这一帧的像素真正点亮 LCD 的某一行，中间发生了<strong>多少次进程切换</strong>、<strong>多少次内存拷贝</strong>、<strong>多少次 CPU ↔ GPU ↔ VPU 协同</strong>？</p>
 <p>答案是：</p>
 <blockquote>
-<p><strong>0 次像素拷贝（理想情况）、3 次跨进程、7 次关键跳跃、至少 4 种硬件单元参与。</strong></p>
+<p><strong>0 次像素拷贝（理想情况）、2 次跨进程、6 次关键跳跃、至少 4 种硬件单元参与。</strong></p>
 </blockquote>
 <p>看不懂这些数字没关系——整个系列就是用来解释它们的。为什么要知道这些？</p>
 <p>《SICP》里面的核心思想 “程序即数据，数据即程序，二者边界模糊，所有计算机程序存在的目的都是为了处理、转换或构造数据，最终达到对复杂系统进行抽象和模拟的目的”。对于我们来讲只要能理解各个数据的流向就能理解整个系统。</p>
 <hr>
-<h2 id="二、MediaCodec-的真实身份"><a href="#二、MediaCodec-的真实身份" class="headerlink" title="二、MediaCodec 的真实身份"></a>二、MediaCodec 的真实身份</h2><h3 id="4-1-它是什么？"><a href="#4-1-它是什么？" class="headerlink" title="4.1 它是什么？"></a>4.1 它是什么？</h3><p><strong>MediaCodec 不是一个解码器，而是 Android 为你提供的”访问解码/编码硬件”的统一 API 门面。</strong></p>
+<h2 id="二、MediaCodec-的真实身份"><a href="#二、MediaCodec-的真实身份" class="headerlink" title="二、MediaCodec 的真实身份"></a>二、MediaCodec 的真实身份</h2><h3 id="4-1-它是什么？"><a href="#4-1-它是什么？" class="headerlink" title="4.1 它是什么？"></a>4.1 它是什么？</h3><p><strong>MediaCodec 不是一个解码器，而是 Android 为你提供的”访问解码/编码硬件”的统一 API 门面。</strong> 更准确地说：</p>
 <blockquote>
-<p>更准确地说：<code>MediaCodec</code> 是一个<strong>字节流的状态机 + 缓冲池的调度器</strong>。</p>
+<p><code>MediaCodec</code> 是一个<strong>字节流的状态机 + 缓冲池的调度器</strong>。</p>
 </blockquote>
 <p>它自己<strong>不懂</strong> H.264，不懂 HEVC，不懂 AV1。它做的事情是：</p>
 <ol>
@@ -127,40 +127,40 @@ html.dataset.dark = localStorage.dark;
 <p>系列后续的工作，就是<strong>掀开厨房的帘子</strong>，逐个工位讲清楚。</p>
 <hr>
 <h2 id="三、MediaCodec-全链路"><a href="#三、MediaCodec-全链路" class="headerlink" title="三、MediaCodec 全链路"></a>三、MediaCodec 全链路</h2><h3 id="六层架构速览"><a href="#六层架构速览" class="headerlink" title="六层架构速览"></a>六层架构速览</h3><pre class="mermaid">flowchart TB
-    subgraph L1["🟦 L1 · Java API"]
-        A1["📱 App 进程<br/>━━━━━━━━━━━━━━<br/>MediaCodec.java<br/>MediaExtractor · MediaMuxer<br/>Surface · SurfaceTexture"]
+    subgraph L1["L1 · Java API"]
+        A1["App 进程<br/>━━━━━━━━━━━━━━<br/>MediaCodec.java<br/>MediaExtractor · MediaMuxer<br/>Surface · SurfaceTexture"]
     end
 
-    subgraph L2["🟩 L2 · JNI 桥接"]
-        B1["📱 App 进程<br/>━━━━━━━━━━━━━━<br/>android_media_MediaCodec.cpp<br/>JMediaCodec 包装对象<br/>ByteBuffer · Surface 跨界"]
+    subgraph L2["L2 · JNI 桥接"]
+        B1["App 进程<br/>━━━━━━━━━━━━━━<br/>android_media_MediaCodec.cpp<br/>JMediaCodec 包装对象<br/>ByteBuffer · Surface 跨界"]
     end
 
-    subgraph L3["🟨 L3 · Native Framework"]
+    subgraph L3["L3 · Native Framework"]
         direction LR
         C1["ACodec<br/>━━━━━━━━<br/>OMX 路径<br/>legacy"]
-        C0["⚙️ mediacodec 进程<br/>━━━━━━━━━━━━━━<br/>MediaCodec.cpp<br/>ALooper + AHandler<br/>状态机"]
+        C0["App 进程 · Native<br/>━━━━━━━━━━━━━━<br/>MediaCodec.cpp<br/>ALooper + AHandler<br/>状态机"]
         C2["CCodec<br/>━━━━━━━━<br/>Codec2 路径<br/>modern"]
         C0 -.-> C1
         C0 -.-> C2
     end
 
-    subgraph L4["🟧 L4 · HAL 层"]
+    subgraph L4["L4 · HAL 层"]
         direction LR
-        D1["🔧 vendor 进程<br/>━━━━━━━━━━━━<br/>OMX HAL<br/>IOMX.hal"]
-        D2["🔧 vendor 进程<br/>━━━━━━━━━━━━<br/>Codec2 HAL<br/>IComponentStore.aidl"]
+        D1["vendor 进程<br/>━━━━━━━━━━━━<br/>OMX HAL<br/>IOMX.hal"]
+        D2["vendor 进程<br/>━━━━━━━━━━━━<br/>Codec2 HAL<br/>IComponentStore.aidl"]
     end
 
-    subgraph L5["🟥 L5 · Kernel 驱动"]
-        E1["🐧 内核态<br/>━━━━━━━━━━━━━━━━━━━━<br/>V4L2 · ION · DMA-BUF · iommu"]
+    subgraph L5["L5 · Kernel 驱动"]
+        E1[" 内核态<br/>━━━━━━━━━━━━━━━━━━━━<br/>V4L2 · ION · DMA-BUF · iommu"]
     end
 
-    subgraph L6["🖤 L6 · SoC 硬件"]
+    subgraph L6["L6 · SoC 硬件"]
         direction LR
-        F1["💻 CPU<br/>━━━━<br/>控制<br/>软解"]
-        F2["🎬 VPU<br/>━━━━<br/>硬件<br/>编解码"]
-        F3["🎨 GPU<br/>━━━━<br/>OES 纹理<br/>Shader"]
-        F4["🧠 NPU/DSP<br/>━━━━━━<br/>AI 超分<br/>插帧"]
-        F5["📺 DPU/HWC<br/>━━━━━━<br/>屏幕合成"]
+        F1["CPU<br/>━━━━<br/>控制<br/>软解"]
+        F2["VPU<br/>━━━━<br/>硬件<br/>编解码"]
+        F3["GPU<br/>━━━━<br/>OES 纹理<br/>Shader"]
+        F4["NPU/DSP<br/>━━━━━━<br/>AI 超分<br/>插帧"]
+        F5["DPU/HWC<br/>━━━━━━<br/>屏幕合成"]
     end
 
     A1 --> B1
@@ -214,14 +214,14 @@ html.dataset.dark = localStorage.dark;
 </tr>
 <tr>
 <td><strong>L3 Native Framework</strong></td>
-<td><strong>mediacodec 进程</strong>（沙箱隔离）</td>
+<td><strong>App 进程</strong></td>
 <td><code>MediaCodec.cpp</code>、<code>CCodec.cpp</code></td>
 <td>真正的解码大脑，调度 Looper/Handler</td>
 </tr>
 <tr>
 <td><strong>L4 HAL</strong></td>
 <td><strong>vendor 进程</strong></td>
-<td><code>c2.qti.*</code> / <code>c2.mtk.*</code> / <code>OMX.qcom.*</code></td>
+<td><code>c2.qti.*</code>/<code>c2.mtk.*</code>/<code>OMX.qcom.*</code></td>
 <td>厂商私有实现，写寄存器、发中断</td>
 </tr>
 <tr>
@@ -239,14 +239,14 @@ html.dataset.dark = localStorage.dark;
 </tbody>
 </table>
 </div>
-<p><strong>三个最昂贵的跨越</strong>（对性能影响最大）：</p>
+<p><strong>两个最昂贵的跨越</strong>（对性能影响最大）：</p>
 <ol>
-<li><strong>L2 → L3</strong> — <code>App 进程 → mediacodec 进程</code>（Binder IPC）</li>
-<li><strong>L3 → L4</strong> — <code>mediacodec 进程 → vendor 进程</code>（HIDL/AIDL 跨进程）</li>
+<li><del>1. L2 → L3 — <code>App 进程 → mediacodec 进程</code>（Binder IPC）</del>  感谢来自<a href="BICV.com">北斗智联/BICV</a>的大佬指正，原先这里表达错误。实际上 Android 8.0+ Codec2 架构下 L2 JNI、L3 Native Framework 均运行在 App 进程；7.0 及更早 OMX 架构中二者虽仍在 App 进程，但实际解码调度需跨进程到 mediacodec 服务进程执行。</li>
+<li><strong>L3 → L4</strong> — <code>App 进程 → vendor codec HAL 进程</code>（HIDL/AIDL 跨进程，唯一一次 codec 相关的 Binder）</li>
 <li><strong>L4 → L5</strong> — 用户态到内核态（ioctl/syscall）</li>
 </ol>
 <blockquote>
-<p><strong>一个隐藏知识点</strong>：Android 8.0（Treble）之后，MediaCodec 被拆到独立进程 <code>mediacodec</code> 中运行，这是为了应对 <strong>StageFright 漏洞</strong>（CVE-2015-1538）的历史教训——<strong>用进程沙箱换安全性</strong>，代价是多一次 Binder 调用。</p>
+<p><strong>一个历史知识点</strong>：2015 年 <strong>Stagefright 漏洞（CVE-2015-1538）</strong>暴露出单mediaserver聚合全部媒体能力的高危缺陷，推动 Android 媒体架构两次重构：Android7 拆分单体 mediaserver 为 media.codec、media.extractor、mediadrmserver 等独立进程，依靠进程隔离 + SELinux 缩小攻击面；Android8将厂商 Codec HAL 下沉 Vendor 分区，以 HIDL/AIDL 实现 system 与 vendor 解耦。<br><strong>Codec2 主流架构关键特性：MediaCodec、CCodec、Codec2Client 整套上层逻辑均跑在 App 进程；</strong>media.codec 进程仅留 MediaCodecService，负责全局 Codec 配额、实例抢占等资源仲裁，不参与解码调度。<br>纯 Codec2 设备解码仅一次媒体 IPC：App 内 Codec2Client 直连 vendor 的c2-service下发解码任务；资源校验、抢占才会单独调用 MediaCodecService，不在主同步链路。<br>兼容旧 OMX 的设备则走两段 IPC：App → media.codec (ACodec) → OMX HAL。<br>解码帧 GraphicBuffer 仅传递句柄至 SurfaceFlinger，依托共享内存零拷贝送入显示流水线。</p>
 </blockquote>
 <hr>
 <h3 id="一帧数据的”七次跳跃”"><a href="#一帧数据的”七次跳跃”" class="headerlink" title="一帧数据的”七次跳跃”"></a>一帧数据的”七次跳跃”</h3><p>用一张”一帧生命周期”时序图来串联上面六层：</p>
@@ -254,7 +254,7 @@ html.dataset.dark = localStorage.dark;
     autonumber
     participant App as App 线程
     participant JNI as JNI 层
-    participant MC as mediacodec 进程
+    participant MC as App 进程 · Native
     participant HAL as vendor HAL 进程
     participant VPU as VPU 硬件
     participant GPU as GPU
@@ -275,7 +275,7 @@ html.dataset.dark = localStorage.dark;
     SF ->> HWC: 合成（GPU 或 DPU 直出）
     HWC -->> App: VSYNC · 像素点亮屏幕</pre>
 
-<p>对应的「<strong>7 次关键跳跃</strong>」是：</p>
+<p>对应的「<strong>6 次关键跳跃</strong>」是：</p>
 <div class="table-container">
 <table>
 <thead>
@@ -301,30 +301,24 @@ html.dataset.dark = localStorage.dark;
 </tr>
 <tr>
 <td>3</td>
-<td>App 进程 → mediacodec 进程</td>
-<td>Binder IPC</td>
-<td><strong>微秒级</strong></td>
+<td>App 进程 Native → vendor codec HAL 进程</td>
+<td>HIDL/AIDL Binder</td>
+<td><strong>微秒级</strong>（唯一一次 codec Binder）</td>
 </tr>
 <tr>
 <td>4</td>
-<td>mediacodec → vendor HAL</td>
-<td>HIDL/AIDL</td>
-<td><strong>微秒级</strong></td>
-</tr>
-<tr>
-<td>5</td>
 <td>vendor → kernel</td>
 <td>ioctl</td>
 <td>几微秒</td>
 </tr>
 <tr>
-<td>6</td>
+<td>5</td>
 <td>kernel → 硬件电路</td>
 <td>寄存器 + 中断</td>
 <td>纳秒级触发，毫秒级执行</td>
 </tr>
 <tr>
-<td>7</td>
+<td>6</td>
 <td>VPU 输出 → GPU/DPU 消费</td>
 <td><strong>dma-fence + DMA-BUF 共享</strong></td>
 <td><strong>零拷贝</strong>（理想）</td>
@@ -333,8 +327,8 @@ html.dataset.dark = localStorage.dark;
 </table>
 </div>
 <blockquote>
-<p><strong>关键秘密</strong>：跳跃 3/4/5 是控制信号（很小，几百字节），跳跃 7 是像素数据（很大，Full HD 一帧 YUV420 约 3MB）——<strong>控制路径多次跨界没关系，像素路径一次拷贝都不能多</strong>。</p>
-<p>这就是为什么 Android 花了十年打磨 <strong>Gralloc + BufferQueue + DMA-BUF + fence</strong> 这一整套”零拷贝基础设施”——我们会在 <strong>M6/M9</strong> 详细拆解。</p>
+<p><strong>关键秘密</strong>：跳跃 3/4 是控制信号（很小，几百字节），跳跃 6 是像素数据（很大，Full HD 一帧 YUV420 约 3MB）——<strong>控制路径多次跨界没关系，像素路径一次拷贝都不能多</strong>。</p>
+<p>这就是为什么 Android 花了十年打磨 <strong>Gralloc + BufferQueue + DMA-BUF + fence</strong> 这一整套”零拷贝基础设施”——第 06 篇会详细拆解这条数据通路。</p>
 </blockquote>
 <hr>
 <h3 id="硬件协同：一颗-SoC-是如何”开派对”的"><a href="#硬件协同：一颗-SoC-是如何”开派对”的" class="headerlink" title="硬件协同：一颗 SoC 是如何”开派对”的"></a>硬件协同：一颗 SoC 是如何”开派对”的</h3><p>很多人以为视频播放只是”解码 → 显示”两步。真实情况要热闹得多：</p>
@@ -408,9 +402,6 @@ html.dataset.dark = localStorage.dark;
 <li><strong>GPU 有三种角色</strong> — 特效处理（App 用）、色彩转换（SF 用）、合成 fallback（HWC 不能直出时兜底）</li>
 <li><strong>NPU 是近 3 年才加入的新玩家</strong> — 超分、插帧是最典型的业务</li>
 </ul>
-<blockquote>
-<p>这些内容将在 <strong>M9 硬件分工全景</strong> 中用两万字铺开讲，包括为什么 HWC 能直出 NV12 而 App 层却必须经过 GPU。</p>
-</blockquote>
 <hr>
 <h3 id="解码与编码：两条相反的路"><a href="#解码与编码：两条相反的路" class="headerlink" title="解码与编码：两条相反的路"></a>解码与编码：两条相反的路</h3><div class="table-container">
 <table>
@@ -460,8 +451,8 @@ html.dataset.dark = localStorage.dark;
 <p>关键技巧：<strong>编码器的输入 Surface + 解码器的输出 SurfaceTexture</strong> 构成一条纯 GPU 零拷贝管线，整个路径 CPU 几乎不参与像素搬运。<strong>这是现代短视频 App 性能的秘密武器</strong>。</p>
 </blockquote>
 <hr>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><code>MediaCodec</code> 不是解码器，而是<strong>六层架构的门面</strong>：上层 API 一次调用，背后是 3 次跨进程、7 次关键跳跃、4 种硬件协同。其中前六跳传的是<strong>控制信号</strong>，最后一跳靠 <code>DMA-BUF + fence</code> 完成<strong>像素零拷贝</strong>——这正是 Android 花十年打磨出的护城河。看懂了这张地图，就能解释”硬解为何变软解”、”同样 1080p60 为何别人更省电”这类表层 API 问题。</p>
-</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css?v=1.0.0"><script type="text/javascript" src="/js/donate.js?v=1.0.0" successtext="复制成功！"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" target="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="https://cdn.julis.wang/blog/img/ali_pay.jpeg"></li><li id="WeChat" qr="https://cdn.julis.wang/blog/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MediaCodec/" rel="tag">MediaCodec</a></li></ul></div><div class="post-nav"><a class="pre" href="/2026/05/05/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9AJava-%E5%B1%82-API-%E4%B8%8E%E7%8A%B6%E6%80%81%E6%9C%BA/">MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机</a><a class="next" href="/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/">如何构建一个好用的SDK</a></div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:1607637473@qq.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank" style="margin-inline:5px"> <i class="fa fa-vimeo-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">49</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/" style="font-size: 15px;">音视频</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/%E5%A4%A7%E5%AD%A6/" style="font-size: 15px;">大学</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/SDK/" style="font-size: 15px;">SDK</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2026/07/03/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%85%AB-%EF%BC%9A%E4%BB%8E%E7%A0%81%E6%B5%81%E5%88%B0%E5%B1%8F%E5%B9%95%E2%80%94%E2%80%94Android-%E8%A7%86%E9%A2%91%E6%92%AD%E6%94%BE%E5%85%A8%E9%93%BE%E8%B7%AF%E6%80%BB%E7%BB%93/">MediaCodec 全链路深度剖析(八)：总结从码流到屏幕—Android 视频播放全链路</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/07/02/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%B8%83-%EF%BC%9ASurfaceFlinger%E3%80%81HWC-%E4%B8%8E-Android-%E6%98%BE%E7%A4%BA%E7%AE%A1%E7%BA%BF/">MediaCodec 全链路深度剖析(七)：SurfaceFlinger、HWC 与 Android 显示管线</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/06/21/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%85%AD-%EF%BC%9AGraphicBuffer-%E5%92%8C-BufferQueue/">MediaCodec 全链路深度剖析(六)：GraphicBuffer 和 BufferQueue</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/06/01/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%BA%94-%EF%BC%9A%E4%BB%8E-C2Work-%E5%88%B0-vendor-%E8%BF%9B%E7%A8%8B/">MediaCodec 全链路深度剖析(五)：从 C2Work 到 vendor 进程</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/11/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%9B%9B-%EF%BC%9ACCodec-%E4%B8%8E-BufferChannel-%E7%9A%84%E5%88%86%E5%B7%A5/">MediaCodec 全链路深度剖析(四)：CCodec 与 BufferChannel 的分工</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/10/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%B8%89-%EF%BC%9ANative-%E6%B6%88%E6%81%AF%E6%9C%BA%E5%88%B6%E4%B8%8E-JNI-%E6%A1%A5%E6%8E%A5/">MediaCodec 全链路深度剖析(三)：Native 消息机制与 JNI 桥接</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/05/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9AJava-%E5%B1%82-API-%E4%B8%8E%E7%8A%B6%E6%80%81%E6%9C%BA/">MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/04/30/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E5%BC%80%E7%AF%87-%E2%80%94%E2%80%94-%E5%BD%93%E4%BD%A0%E7%82%B9%E4%B8%8B-%E6%92%AD%E6%94%BE-%EF%BC%8C%E7%A9%B6%E7%AB%9F%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F/">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下"播放"，究竟发生了什么？</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/">如何构建一个好用的SDK</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/">JPEG压缩之DCT离散余弦变换</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://k.julis.wang" title="Knowledge Precipitation" target="_blank">Knowledge Precipitation</a><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2026 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/VomPom/kami-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/vompom"> Vompom.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><code>MediaCodec</code> 不是解码器，而是<strong>六层架构的门面</strong>：上层 API 一次调用，背后是 2 次跨进程、6 次关键跳跃、4 种硬件协同。其中前五跳传的是<strong>控制信号</strong>，最后一跳靠 <code>DMA-BUF + fence</code> 完成<strong>像素零拷贝</strong>——这正是 Android 花十年打磨出的护城河。看懂了这张地图，就能解释”硬解为何变软解”、”同样 1080p60 为何别人更省电”这类表层 API 问题。</p>
+</div><div id="donate"><link rel="stylesheet" type="text/css" href="/css/donate.css?v=1.0.0"><script type="text/javascript" src="/js/donate.js?v=1.0.0" successtext="复制成功！"></script><a class="pos-f tr3" id="github" href="https://github.com/Kaiyuan/donate-page" target="_blank" title="Github"></a><div id="DonateText">Donate</div><ul class="list pos-f" id="donateBox"><li id="AliPay" qr="https://cdn.julis.wang/blog/img/ali_pay.jpeg"></li><li id="WeChat" qr="https://cdn.julis.wang/blog/img/wechat_pay.png"></li></ul><div class="pos-f left-100" id="QRBox"><div id="MainBox"></div></div></div><div class="tags"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MediaCodec/" rel="tag">MediaCodec</a></li></ul></div><div class="post-nav"><a class="pre" href="/2026/05/05/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9AJava-%E5%B1%82-API-%E4%B8%8E%E7%8A%B6%E6%80%81%E6%9C%BA/">MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机</a><a class="next" href="/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/">如何构建一个好用的SDK</a></div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:1607637473@qq.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank" style="margin-inline:5px"> <i class="fa fa-vimeo-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">49</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/" style="font-size: 15px;">音视频</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/%E5%A4%A7%E5%AD%A6/" style="font-size: 15px;">大学</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/SDK/" style="font-size: 15px;">SDK</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2026/07/03/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%85%AB-%EF%BC%9A%E4%BB%8E%E7%A0%81%E6%B5%81%E5%88%B0%E5%B1%8F%E5%B9%95%E2%80%94%E2%80%94Android-%E8%A7%86%E9%A2%91%E6%92%AD%E6%94%BE%E5%85%A8%E9%93%BE%E8%B7%AF%E6%80%BB%E7%BB%93/">MediaCodec 全链路深度剖析(八)：总结从码流到屏幕—Android 视频播放全链路</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/07/02/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%B8%83-%EF%BC%9ASurfaceFlinger%E3%80%81HWC-%E4%B8%8E-Android-%E6%98%BE%E7%A4%BA%E7%AE%A1%E7%BA%BF/">MediaCodec 全链路深度剖析(七)：SurfaceFlinger、HWC 与 Android 显示管线</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/06/21/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%85%AD-%EF%BC%9AGraphicBuffer-%E5%92%8C-BufferQueue/">MediaCodec 全链路深度剖析(六)：GraphicBuffer 和 BufferQueue</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/06/01/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%BA%94-%EF%BC%9A%E4%BB%8E-C2Work-%E5%88%B0-vendor-%E8%BF%9B%E7%A8%8B/">MediaCodec 全链路深度剖析(五)：从 C2Work 到 vendor 进程</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/11/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%9B%9B-%EF%BC%9ACCodec-%E4%B8%8E-BufferChannel-%E7%9A%84%E5%88%86%E5%B7%A5/">MediaCodec 全链路深度剖析(四)：CCodec 与 BufferChannel 的分工</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/10/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%B8%89-%EF%BC%9ANative-%E6%B6%88%E6%81%AF%E6%9C%BA%E5%88%B6%E4%B8%8E-JNI-%E6%A1%A5%E6%8E%A5/">MediaCodec 全链路深度剖析(三)：Native 消息机制与 JNI 桥接</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/05/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9AJava-%E5%B1%82-API-%E4%B8%8E%E7%8A%B6%E6%80%81%E6%9C%BA/">MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/04/30/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E5%BC%80%E7%AF%87-%E2%80%94%E2%80%94-%E5%BD%93%E4%BD%A0%E7%82%B9%E4%B8%8B-%E6%92%AD%E6%94%BE-%EF%BC%8C%E7%A9%B6%E7%AB%9F%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F/">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下"播放"，究竟发生了什么？</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/">如何构建一个好用的SDK</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/">JPEG压缩之DCT离散余弦变换</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://k.julis.wang" title="Knowledge Precipitation" target="_blank">Knowledge Precipitation</a><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2026 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/VomPom/kami-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/vompom"> Vompom.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
 if (search_path.length == 0) {
   search_path = 'search.xml';
 }
