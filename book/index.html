@@ -1,0 +1,331 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="落叶挽歌"><title>读书记录 | 落叶挽歌</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="https://unpkg.com/normalize.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/pure-min.css"><link rel="stylesheet" type="text/css" href="https://unpkg.com/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="https://unpkg.com/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?' + 'a642bfb7c75afbc4fe68fd942180298b';
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+  })();</script><script type="text/javascript" src="https://unpkg.com/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="https://unpkg.com/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="https://unpkg.com/toastr/build/toastr.min.css"><div class="darkmode-toggle">🌓</div><script>var prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+var toggle = document.querySelector('.darkmode-toggle');
+var html = document.querySelector('html');
+
+html.dataset.dark = localStorage.dark || prefersDarkMode.matches;
+
+toggle.addEventListener('click', () => {
+localStorage.dark = !(html.dataset.dark == 'true');
+html.dataset.dark = localStorage.dark;
+});</script><meta name="generator" content="Hexo 7.3.0"><link rel="stylesheet" href="/css/prism.css" type="text/css"><script src="/js/prism.js"></script></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">读书记录</h1><a id="logo" href="/.">落叶挽歌</a><p class="description">juliswang's 博客</p></div><div id="nav-menu"><a href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a class="current" href="/book"><i class="fa fa-book"> 读书</i></a><a href="https://k.julis.wang"><i class="fa fa-wikipedia-w"> 知识</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">读书记录</h1><div class="post-content">
+<div id="book-page">
+  <div class="book-toolbar">
+    <div class="book-stat">共 <span id="book-total">0</span> 本 · 最近更新于 <span id="book-updated">—</span></div>
+    <div class="book-controls">
+      <input id="book-search" type="search" placeholder="搜索书名 / 短评…" />
+      <label>评分
+        <select id="book-rating-filter">
+          <option value="" selected>全部</option>
+          <option value="5">5星</option>
+          <option value="4">4星</option>
+          <option value="3">3星</option>
+          <option value="2">2星</option>
+          <option value="1">1星</option>
+          <option value="0">未评分</option>
+        </select>
+      </label>
+      <label>每页
+        <select id="book-page-size">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+        条
+      </label>
+    </div>
+  </div>
+  <ul id="book-list" class="book-list"></ul>
+  <div id="book-empty" class="book-empty" style="display:none;">暂无匹配的书籍</div>
+  <nav id="book-pager" class="book-pager" aria-label="分页"></nav>
+</div>
+<script>
+(function () {
+  var DATA_SIMPLE  = '/pulicdata/books.json';
+  var DATA_SUMMARY = '/pulicdata/book_summary.json';
+  var DEFAULT_PAGE_SIZE = 10;
+  var PAGER_WINDOW = 2;
+  var state = { books: [], filtered: [], page: 1, pageSize: DEFAULT_PAGE_SIZE, keyword: '', rating: '' };
+  var $list    = document.getElementById('book-list');
+  var $empty   = document.getElementById('book-empty');
+  var $pager   = document.getElementById('book-pager');
+  var $total   = document.getElementById('book-total');
+  var $updated = document.getElementById('book-updated');
+  var $search  = document.getElementById('book-search');
+  var $size    = document.getElementById('book-page-size');
+  var $rating  = document.getElementById('book-rating-filter');
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function renderStars(rating) {
+    var n = parseInt(rating, 10);
+    if (!n || n < 1) return '<span class="book-rating-empty">未评分</span>';
+    if (n > 5) n = 5;
+    return '<span class="book-rating" title="我的评分：' + n + ' / 5">' + '★★★★★'.slice(0, n) + '<span class="book-rating-dim">' + '★★★★★'.slice(n) + '</span></span>';
+  }
+  function fetchJSON(url) {
+    return fetch(url, { cache: 'no-cache' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' @ ' + url);
+      return r.json();
+    });
+  }
+  function mergeData(simple, summary) {
+    var map = {};
+    (summary && summary.books || []).forEach(function (b) { if (b && b.title) map[b.title] = b; });
+    var merged = (simple && simple.books || []).map(function (b) {
+      var extra = map[b.title] || null;
+      return {
+        title: b.title,
+        detail_url: b.detail_url,
+        my_rating: b.my_rating,
+        my_comment: b.my_comment,
+        mark_date: b.mark_date,
+        douban_rating: b.douban_rating,
+        author: extra ? extra.author : null,
+        core_summary: extra ? extra.core_summary : null,
+        key_quotes: extra ? (extra.key_quotes || []) : []
+      };
+    });
+    merged.sort(function (a, b) { return (b.mark_date || '').localeCompare(a.mark_date || ''); });
+    return merged;
+  }
+  function applyFilter() {
+    var kw = state.keyword.trim().toLowerCase();
+    var rf = state.rating; // '' 全部 | '0' 未评分 | '1'..'5'
+    state.filtered = state.books.filter(function (b) {
+      if (kw) {
+        var hit = (b.title && b.title.toLowerCase().indexOf(kw) !== -1) ||
+                  (b.my_comment && b.my_comment.toLowerCase().indexOf(kw) !== -1) ||
+                  (b.author && b.author.toLowerCase().indexOf(kw) !== -1);
+        if (!hit) return false;
+      }
+      if (rf !== '' && rf != null) {
+        var r = parseInt(b.my_rating, 10);
+        if (rf === '0') { if (r >= 1) return false; }
+        else { if (r !== parseInt(rf, 10)) return false; }
+      }
+      return true;
+    });
+    if (state.page < 1) state.page = 1;
+    var maxPage = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+    if (state.page > maxPage) state.page = maxPage;
+  }
+  function renderList() {
+    var start = (state.page - 1) * state.pageSize;
+    var items = state.filtered.slice(start, start + state.pageSize);
+    if (!items.length) { $list.innerHTML = ''; $empty.style.display = ''; return; }
+    $empty.style.display = 'none';
+    var html = items.map(function (b) {
+      var hasExtra = !!(b.core_summary || (b.key_quotes && b.key_quotes.length));
+      var quotes = (b.key_quotes || []).map(function (q) { return '<li>' + escapeHtml(q) + '</li>'; }).join('');
+      return '<li class="book-item">' +
+          '<div class="book-head">' +
+            '<a class="book-title" href="' + escapeHtml(b.detail_url || '#') + '" target="_blank" rel="noopener">' + escapeHtml(b.title) + '</a>' +
+            '<span class="book-meta">' +
+              (b.author ? '<span class="book-author">' + escapeHtml(b.author) + '</span>' : '') +
+              (b.mark_date ? '<span class="book-date">' + escapeHtml(b.mark_date) + '</span>' : '') +
+            '</span>' +
+          '</div>' +
+          '<div class="book-sub">' +
+            renderStars(b.my_rating) +
+            (b.my_comment ? '<span class="book-comment">“' + escapeHtml(b.my_comment) + '”</span>' : '') +
+          '</div>' +
+          (hasExtra ?
+            '<div class="book-extra">' +
+              '<div class="book-extra-title">摘要 / 金句</div>' +
+              (b.core_summary ? '<p class="book-summary">' + escapeHtml(b.core_summary) + '</p>' : '') +
+              (quotes ? '<ul class="book-quotes">' + quotes + '</ul>' : '') +
+            '</div>'
+          : '') +
+        '</li>';
+    }).join('');
+    $list.innerHTML = html;
+  }
+  function renderPager() {
+    var total = state.filtered.length;
+    var maxPage = Math.max(1, Math.ceil(total / state.pageSize));
+    if (maxPage <= 1) { $pager.innerHTML = ''; return; }
+    var cur = state.page;
+    var pages = new Set([1, maxPage, cur]);
+    for (var i = 1; i <= PAGER_WINDOW; i++) {
+      if (cur - i >= 1) pages.add(cur - i);
+      if (cur + i <= maxPage) pages.add(cur + i);
+    }
+    var sorted = Array.from(pages).sort(function (a, b) { return a - b; });
+    var parts = [];
+    parts.push('<button class="pg-btn" data-page="' + (cur - 1) + '" ' + (cur === 1 ? 'disabled' : '') + '>上一页</button>');
+    var prev = 0;
+    sorted.forEach(function (p) {
+      if (prev && p - prev > 1) parts.push('<span class="pg-ellipsis">…</span>');
+      parts.push('<button class="pg-btn' + (p === cur ? ' pg-active' : '') + '" data-page="' + p + '">' + p + '</button>');
+      prev = p;
+    });
+    parts.push('<button class="pg-btn" data-page="' + (cur + 1) + '" ' + (cur === maxPage ? 'disabled' : '') + '>下一页</button>');
+    parts.push('<span class="pg-info">第 ' + cur + ' / ' + maxPage + ' 页</span>');
+    $pager.innerHTML = parts.join('');
+  }
+  function rerender() { applyFilter(); renderList(); renderPager(); }
+  $pager.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-page]');
+    if (!btn || btn.disabled) return;
+    var p = parseInt(btn.getAttribute('data-page'), 10);
+    if (!isNaN(p)) {
+      state.page = p;
+      rerender();
+      document.getElementById('book-page').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+  $size.addEventListener('change', function () {
+    state.pageSize = parseInt($size.value, 10) || DEFAULT_PAGE_SIZE;
+    state.page = 1;
+    rerender();
+  });
+  $rating.addEventListener('change', function () {
+    state.rating = $rating.value;
+    state.page = 1;
+    rerender();
+  });
+  var searchTimer = null;
+  $search.addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () {
+      state.keyword = $search.value || '';
+      state.page = 1;
+      rerender();
+    }, 150);
+  });
+  Promise.all([
+    fetchJSON(DATA_SIMPLE),
+    fetchJSON(DATA_SUMMARY).catch(function () { return { books: [] }; })
+  ]).then(function (res) {
+    var simple = res[0], summary = res[1];
+    state.books = mergeData(simple, summary);
+    $total.textContent = simple && simple.count != null ? simple.count : state.books.length;
+    $updated.textContent = simple && simple.updated_at ? String(simple.updated_at).slice(0, 10) : '—';
+    state.pageSize = parseInt($size.value, 10) || DEFAULT_PAGE_SIZE;
+    rerender();
+  }).catch(function (err) {
+    $list.innerHTML = '';
+    $empty.textContent = '书籍数据加载失败：' + (err && err.message ? err.message : err);
+    $empty.style.display = '';
+    console.error(err);
+  });
+})();
+</script>
+<style>
+#book-page { color: #333; font-size: 15px; line-height: 1.7; }
+#book-page .book-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid #eee; }
+#book-page .book-stat { color: #888; font-size: 13px; }
+#book-page .book-controls { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #666; }
+#book-page .book-controls input[type="search"] { width: 180px; padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; outline: none; transition: border-color 0.2s; background: #fff; color: #333; }
+#book-page .book-controls input[type="search"]:focus { border-color: #999; }
+#book-page .book-controls select { padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; background: #fff; color: #333; }
+#book-page .book-list { list-style: none; padding: 0; margin: 0; }
+#book-page .book-item { padding: 14px 0; border-bottom: 1px dashed #ececec; }
+#book-page .book-item:last-child { border-bottom: none; }
+#book-page .book-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+#book-page .book-title { font-size: 16px; font-weight: 600; color: #2c3e50; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+#book-page .book-title:hover { border-bottom-color: #2c3e50; }
+#book-page .book-meta { font-size: 12px; color: #999; display: inline-flex; gap: 10px; }
+#book-page .book-author::before { content: '✎ '; }
+#book-page .book-date::before   { content: '🕒 '; }
+#book-page .book-sub { margin-top: 4px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+#book-page .book-rating { color: #f5a623; font-size: 13px; letter-spacing: 1px; }
+#book-page .book-rating-dim { color: #e5e5e5; }
+#book-page .book-rating-empty { color: #ccc; font-size: 12px; }
+#book-page .book-comment { color: #555; font-size: 14px; font-style: italic; }
+#book-page .book-extra { margin-top: 10px; background: #fafafa; border: 1px solid #eee; border-radius: 4px; padding: 10px 14px; }
+#book-page .book-extra-title { font-size: 12px; color: #999; letter-spacing: 1px; margin-bottom: 6px; border-bottom: 1px dashed #eee; padding-bottom: 4px; }
+#book-page .book-summary { margin: 6px 0; color: #444; font-size: 14px; line-height: 1.75; }
+#book-page .book-quotes { margin: 6px 0 0; padding-left: 20px; color: #555; font-size: 13.5px; }
+#book-page .book-quotes li { margin: 4px 0; }
+#book-page .book-empty { text-align: center; color: #aaa; padding: 40px 0; font-size: 14px; }
+#book-page .book-pager { margin-top: 24px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px; }
+#book-page .book-pager .pg-btn { min-width: 32px; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; color: #555; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+#book-page .book-pager .pg-btn:hover:not(:disabled):not(.pg-active) { border-color: #999; color: #222; }
+#book-page .book-pager .pg-btn:disabled { color: #ccc; cursor: not-allowed; }
+#book-page .book-pager .pg-active { background: #2c3e50; color: #fff; border-color: #2c3e50; }
+#book-page .book-pager .pg-ellipsis { color: #aaa; padding: 0 4px; }
+#book-page .book-pager .pg-info { margin-left: 10px; color: #999; font-size: 12px; }
+@media (max-width: 600px) {
+  #book-page .book-toolbar { flex-direction: column; align-items: stretch; }
+  #book-page .book-controls { justify-content: space-between; }
+  #book-page .book-controls input[type="search"] { flex: 1; width: auto; }
+  #book-page .book-meta { width: 100%; }
+}
+</style>
+
+</div></div></div></div><div class="pure-u-1 pure-u-md-1-4"><div id="sidebar"><div class="widget"><div class="search-form"><input id="local-search-input" placeholder="Search" type="text" name="q" results="0"/><div id="local-search-result"></div></div></div><div class="widget"><div class="author-info"><a class="info-avatar" href="/about/" title="关于"><img class="nofancybox" src="/img/avatar.png"/></a><p>For a better life.</p><a class="info-icon" href="mailto:1607637473@qq.com" title="Email" target="_blank" style="margin-inline:5px"> <i class="fa fa-envelope-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://github.com/vompom" title="Github" target="_blank" style="margin-inline:5px"> <i class="fa fa-github-square" style="margin-inline:5px"></i></a><a class="info-icon" href="/atom.xml" title="RSS" target="_blank" style="margin-inline:5px"> <i class="fa fa-rss-square" style="margin-inline:5px"></i></a><a class="info-icon" href="https://www.douban.com/people/vompom/" title="豆瓣" target="_blank" style="margin-inline:5px"> <i class="fa fa-vimeo-square" style="margin-inline:5px"></i></a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/thinking/">思考总结</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/technology/">技术文章</a><span class="category-list-count">49</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/life/">生活感想</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/">算法研究</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/movie/">读书电影</a><span class="category-list-count">6</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/travel/" style="font-size: 15px;">旅行</a> <a href="/tags/zhihu/" style="font-size: 15px;">知乎</a> <a href="/tags/plugins/" style="font-size: 15px;">插件化</a> <a href="/tags/JavaScript/" style="font-size: 15px;">JavaScript</a> <a href="/tags/FFmpeg/" style="font-size: 15px;">FFmpeg</a> <a href="/tags/MediaCodec/" style="font-size: 15px;">MediaCodec</a> <a href="/tags/Android/" style="font-size: 15px;">Android</a> <a href="/tags/%E9%80%86%E5%90%91/" style="font-size: 15px;">逆向</a> <a href="/tags/Android/" style="font-size: 15px;">安卓</a> <a href="/tags/KMP/" style="font-size: 15px;">KMP</a> <a href="/tags/%E9%9F%B3%E8%A7%86%E9%A2%91/" style="font-size: 15px;">音视频</a> <a href="/tags/Flutter/" style="font-size: 15px;">Flutter</a> <a href="/tags/Https/" style="font-size: 15px;">Https</a> <a href="/tags/Http/" style="font-size: 15px;">Http</a> <a href="/tags/JNI/" style="font-size: 15px;">JNI</a> <a href="/tags/java/" style="font-size: 15px;">Java</a> <a href="/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 15px;">数学</a> <a href="/tags/mmap/" style="font-size: 15px;">mmap</a> <a href="/tags/koin/" style="font-size: 15px;">koin</a> <a href="/tags/%E7%BD%91%E7%BB%9C/" style="font-size: 15px;">网络</a> <a href="/tags/life/" style="font-size: 15px;">生活</a> <a href="/tags/%E8%AF%BB%E4%B9%A6/" style="font-size: 15px;">读书</a> <a href="/tags/Unity/" style="font-size: 15px;">Unity</a> <a href="/tags/thinking/" style="font-size: 15px;">省</a> <a href="/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 15px;">插件</a> <a href="/tags/UTF-8/" style="font-size: 15px;">UTF-8</a> <a href="/tags/algorithm/" style="font-size: 15px;">算法</a> <a href="/tags/%E5%A4%A7%E5%AD%A6/" style="font-size: 15px;">大学</a> <a href="/tags/design/" style="font-size: 15px;">设计模式</a> <a href="/tags/SDK/" style="font-size: 15px;">SDK</a> <a href="/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 15px;">工具</a> <a href="/tags/Shell/" style="font-size: 15px;">Shell</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 15px;">前端</a> <a href="/tags/technology/" style="font-size: 15px;">技术文章</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 15px;">面试</a> <a href="/tags/%E8%AF%97%E6%AD%8C/" style="font-size: 15px;">诗歌</a> <a href="/tags/OpenGL/" style="font-size: 15px;">OpenGL</a> <a href="/tags/middle/" style="font-size: 15px;">高中</a> <a href="/tags/%E9%B8%BF%E8%92%99/" style="font-size: 15px;">鸿蒙</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2026/07/03/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%85%AB-%EF%BC%9A%E4%BB%8E%E7%A0%81%E6%B5%81%E5%88%B0%E5%B1%8F%E5%B9%95%E2%80%94%E2%80%94Android-%E8%A7%86%E9%A2%91%E6%92%AD%E6%94%BE%E5%85%A8%E9%93%BE%E8%B7%AF%E6%80%BB%E7%BB%93/">MediaCodec 全链路深度剖析(八)：总结从码流到屏幕—Android 视频播放全链路</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/07/02/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%B8%83-%EF%BC%9ASurfaceFlinger%E3%80%81HWC-%E4%B8%8E-Android-%E6%98%BE%E7%A4%BA%E7%AE%A1%E7%BA%BF/">MediaCodec 全链路深度剖析(七)：SurfaceFlinger、HWC 与 Android 显示管线</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/06/21/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%85%AD-%EF%BC%9AGraphicBuffer-%E5%92%8C-BufferQueue/">MediaCodec 全链路深度剖析(六)：GraphicBuffer 和 BufferQueue</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/06/01/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%BA%94-%EF%BC%9A%E4%BB%8E-C2Work-%E5%88%B0-vendor-%E8%BF%9B%E7%A8%8B/">MediaCodec 全链路深度剖析(五)：从 C2Work 到 vendor 进程</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/11/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E5%9B%9B-%EF%BC%9ACCodec-%E4%B8%8E-BufferChannel-%E7%9A%84%E5%88%86%E5%B7%A5/">MediaCodec 全链路深度剖析(四)：CCodec 与 BufferChannel 的分工</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/10/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-%E4%B8%89-%EF%BC%9ANative-%E6%B6%88%E6%81%AF%E6%9C%BA%E5%88%B6%E4%B8%8E-JNI-%E6%A1%A5%E6%8E%A5/">MediaCodec 全链路深度剖析(三)：Native 消息机制与 JNI 桥接</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/05/05/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9AJava-%E5%B1%82-API-%E4%B8%8E%E7%8A%B6%E6%80%81%E6%9C%BA/">MediaCodec 全链路深度剖析(二)：Java 层 API 与状态机</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/04/30/MediaCodec-%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E5%BC%80%E7%AF%87-%E2%80%94%E2%80%94-%E5%BD%93%E4%BD%A0%E7%82%B9%E4%B8%8B-%E6%92%AD%E6%94%BE-%EF%BC%8C%E7%A9%B6%E7%AB%9F%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F/">MediaCodec 全链路深度剖析(一)：开篇 —— 当你点下"播放"，究竟发生了什么？</a></li><li class="post-list-item"><a class="post-list-link" href="/2026/02/04/%E5%A6%82%E4%BD%95%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%94%A8%E7%9A%84SDK/">如何构建一个好用的SDK</a></li><li class="post-list-item"><a class="post-list-link" href="/2025/11/04/JPEG%E5%8E%8B%E7%BC%A9%E4%B9%8BDCT%E7%A6%BB%E6%95%A3%E4%BD%99%E5%BC%A6%E5%8F%98%E6%8D%A2/">JPEG压缩之DCT离散余弦变换</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://k.julis.wang" title="Knowledge Precipitation" target="_blank">Knowledge Precipitation</a><ul></ul><a href="https://github.com/VomPom" title="Github" target="_blank">Github</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2026 <a href="/." rel="nofollow">落叶挽歌.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/VomPom/kami-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/vompom"> Vompom.<p></a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="https://unpkg.com/@fancyapps/fancybox/dist/jquery.fancybox.min.css"><link rel="stylesheet" type="text/css" href="/css/search.css?v=1.0.0"><script type="text/javascript" src="/js/search.js?v=1.0.0"></script><script>var search_path = 'search.xml';
+if (search_path.length == 0) {
+  search_path = 'search.xml';
+}
+var path = '/' + search_path;
+searchFunc(path, 'local-search-input', 'local-search-result');
+</script><script type="text/javascript" src="/js/copycode.js?v=1.0.0" successtext="复制成功！"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css?v=1.0.0"><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script><link rel="stylesheet" type="text/css" href="/css/mermaid-viewer.css?v=1.0.0"><script type="text/javascript" src="/js/mermaid-viewer.js?v=1.0.0"></script><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs';
+// Kami palette (parchment + ink-blue)
+const kamiTheme = {
+  fontFamily: 'Charter, "TsangerJinKai02", "Source Han Serif SC", "Songti SC", Georgia, serif',
+  fontSize:           '14px',
+  primaryColor:       '#EEF2F7',  /* brand-tint */
+  primaryBorderColor: '#1B365D',  /* brand */
+  primaryTextColor:   '#141413',  /* near-black */
+  secondaryColor:     '#faf9f5',  /* ivory */
+  secondaryBorderColor:'#e8e6dc', /* border */
+  secondaryTextColor: '#3d3d3a',
+  tertiaryColor:      '#f5f4ed',  /* parchment */
+  tertiaryBorderColor:'#e5e3d8',
+  tertiaryTextColor:  '#3d3d3a',
+  lineColor:          '#504e49',  /* olive */
+  textColor:          '#141413',
+  background:         '#f5f4ed',
+  mainBkg:            '#faf9f5',
+  secondBkg:          '#EEF2F7',
+  tertiaryBkg:        '#E4ECF5',
+  nodeBorder:         '#1B365D',
+  clusterBkg:         '#faf9f5',
+  clusterBorder:      '#e8e6dc',
+  edgeLabelBackground:'#f5f4ed',
+  titleColor:         '#141413',
+  labelTextColor:     '#141413',
+  noteBkgColor:       '#faf9f5',
+  noteBorderColor:    '#e8e6dc',
+  noteTextColor:      '#3d3d3a',
+  activationBkgColor: '#EEF2F7',
+  activationBorderColor:'#1B365D',
+  sequenceNumberColor:'#faf9f5',
+  actorBkg:           '#faf9f5',
+  actorBorder:        '#1B365D',
+  actorTextColor:     '#141413',
+  actorLineColor:     '#504e49',
+  signalColor:        '#3d3d3a',
+  signalTextColor:    '#141413',
+  labelBoxBkgColor:   '#EEF2F7',
+  labelBoxBorderColor:'#1B365D',
+  altBackground:      '#faf9f5',
+  gridColor:          '#e5e3d8'
+};
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  themeVariables: kamiTheme,
+  securityLevel: 'loose',
+  flowchart: { useMaxWidth: true, curve: 'basis', htmlLabels: true },
+  sequence: { useMaxWidth: true },
+  gantt: { useMaxWidth: true },
+  journey: { useMaxWidth: true },
+  class: { useMaxWidth: true },
+  state: { useMaxWidth: true },
+  er: { useMaxWidth: true },
+  pie: { useMaxWidth: true },
+  mindmap: { useMaxWidth: true },
+  gitGraph: { useMaxWidth: true }
+});
+await mermaid.run({ querySelector: 'pre.mermaid' });
+if (window.MermaidViewer) window.MermaidViewer.scan();</script></div></body></html>
